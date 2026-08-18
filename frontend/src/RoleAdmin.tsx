@@ -299,16 +299,17 @@ function Competitions({ token, national }: { token: string; national: boolean })
         </form>
       )}
       {message && <div className="empty">{message}</div>}
+      <div className="section-head"><h3>المنافسات المعتمدة ({rows.length})</h3></div>
       <div className="data-table">
         {rows.map((row) => (
           <div className="data-row" key={row.id}>
             <span>{row.name}</span>
             <span>{row.season_name}</span>
-            <small>{row.status} · {row.age_category ?? '—'} · {row.gender_category ?? '—'}</small>
+            <small>{row.status} · {row.sport_kind === 'TEAM' ? 'جماعية' : row.sport_kind === 'INDIVIDUAL' ? 'فردية' : '—'} · {row.discipline ?? '—'} · {row.age_category ?? '—'} · {row.gender_category ?? '—'}</small>
             {national && competitionNext[row.status] && <button className="secondary" onClick={() => transition(row.id, row.status)}>{competitionNext[row.status]}</button>}
           </div>
         ))}
-        {!rows.length && <div className="empty">لا توجد منافسات.</div>}
+        {!rows.length && <div className="empty">لا توجد منافسات في السجل. إن كنت على البوابة العامة فتأكد أن الخادم يعمل.</div>}
       </div>
     </div>
   );
