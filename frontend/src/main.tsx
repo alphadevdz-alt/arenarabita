@@ -189,13 +189,15 @@ function InstitutionRegister() {
   const [communes, setCommunes] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [form, setForm] = useState({ username: '', password: '', displayName: '', institutionName: '', institutionCode: '', wilayaId: '', communeId: '', dairaId: '', schoolId: '' });
+  const [communeQ, setCommuneQ] = useState('');
+  const [schoolQ, setSchoolQ] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   useEffect(() => {
     fetch(`${API}/api/v1/public/geography/wilayas`).then((r) => r.json()).then((d) => setWilayas(d.data ?? [])).catch(() => setWilayas([]));
   }, []);
   useEffect(() => {
-    if (!form.wilayaId) { setCommunes([]); setSchools([]); return; }
+    if (!form.wilayaId) { setCommunes([]); setSchools([]); setCommuneQ(''); setSchoolQ(''); return; }
     fetch(`${API}/api/v1/public/geography/wilayas/${form.wilayaId}/communes`).then((r) => r.json()).then((d) => setCommunes(d.data ?? [])).catch(() => setCommunes([]));
   }, [form.wilayaId]);
   useEffect(() => {
@@ -228,24 +230,31 @@ function InstitutionRegister() {
       <div className="login-card">
         <div className="eyebrow"><Users size={18} /> انخراط مؤسسة تعليمية</div>
         <h1>طلب الانخراط</h1>
-        <p>اختر الولاية ثم البلدية ثم المؤسسة من دليل GeoAlgeria. يُراجع الطلب من الرابطة الولائية.</p>
+        <p>التسلسل إلزامي من دليل GeoAlgeria: الولاية ثم البلدية ثم المؤسسة. الدائرة تُستنتج تلقائياً.</p>
         <form onSubmit={submit}>
-          <label>الولاية
+          <label>1 — الولاية
             <select value={form.wilayaId} onChange={(e) => setForm({ ...form, wilayaId: e.target.value, communeId: '', dairaId: '', schoolId: '', institutionName: '', institutionCode: '' })} required>
               <option value="">اختر الولاية</option>
-              {wilayas.map((w) => <option key={w.id} value={w.id}>{w.ar_name || w.name}</option>)}
+              {wilayas.map((w) => <option key={w.id} value={w.id}>{w.ar_name || w.name} — {w.name}</option>)}
             </select>
           </label>
-          <label>البلدية
+          <label>بحث البلدية<input value={communeQ} onChange={(e) => setCommuneQ(e.target.value)} disabled={!form.wilayaId} placeholder="اكتب اسم البلدية" /></label>
+          <label>2 — البلدية
             <select value={form.communeId} onChange={(e) => {
               const commune = communes.find((c) => String(c.id) === e.target.value);
               setForm({ ...form, communeId: e.target.value, dairaId: commune ? String(commune.daira_id) : '', schoolId: '', institutionName: '', institutionCode: '' });
+              setSchoolQ('');
             }} required disabled={!form.wilayaId}>
               <option value="">{form.wilayaId ? 'اختر البلدية' : 'اختر الولاية أولاً'}</option>
-              {communes.map((c) => <option key={c.id} value={c.id}>{c.ar_name || c.name}</option>)}
+              {communes.filter((c) => {
+                const q = communeQ.trim();
+                if (!q) return true;
+                return `${c.ar_name ?? ''} ${c.name ?? ''}`.includes(q);
+              }).map((c) => <option key={c.id} value={c.id}>{c.ar_name || c.name} / {c.name}{c.daira_ar_name || c.daira_name ? ` · دائرة ${c.daira_ar_name || c.daira_name}` : ''}</option>)}
             </select>
           </label>
-          <label>المؤسسة
+          <label>بحث المؤسسة<input value={schoolQ} onChange={(e) => setSchoolQ(e.target.value)} disabled={!form.communeId} placeholder="اكتب اسم المؤسسة" /></label>
+          <label>3 — المؤسسة
             <select value={form.schoolId} onChange={(e) => {
               const school = schools.find((s) => s.id === e.target.value);
               setForm({
@@ -255,8 +264,12 @@ function InstitutionRegister() {
                 institutionCode: school ? school.id : ''
               });
             }} required disabled={!form.communeId}>
-              <option value="">{form.communeId ? (schools.length ? 'اختر المؤسسة' : 'لا توجد مؤسسات مسجّلة في هذه البلدية') : 'اختر البلدية أولاً'}</option>
-              {schools.map((s) => <option key={s.id} value={s.id}>{(s.name_ar || s.name || s.name_fr)} ({s.cycle || 'مؤسسة'})</option>)}
+              <option value="">{form.communeId ? (schools.length ? 'اختر المؤسسة' : 'لا توجد مؤسسات مسجّلة في هذه البلدية ضمن الدليل') : 'اختر البلدية أولاً'}</option>
+              {schools.filter((s) => {
+                const q = schoolQ.trim();
+                if (!q) return true;
+                return `${s.name_ar ?? ''} ${s.name ?? ''} ${s.name_fr ?? ''}`.includes(q);
+              }).map((s) => <option key={s.id} value={s.id}>{(s.name_ar || s.name || s.name_fr)} — {s.cycle || 'مؤسسة'}</option>)}
             </select>
           </label>
           <label>اسم المستخدم<input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></label>
