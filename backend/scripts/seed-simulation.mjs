@@ -120,11 +120,21 @@ try {
     );
   }
 
+  await pool.query(
+    `UPDATE participants SET date_of_birth='2011-03-12' WHERE id=$1 AND date_of_birth IS NULL`,
+    [participantIds[0]]
+  );
   const license = await pool.query(
-    `INSERT INTO sports_licenses(participant_id,status,issued_at,expires_at)
-     SELECT $1,'ACTIVE',now(),'2026-12-31'
+    `INSERT INTO sports_licenses(participant_id,status,issued_at,expires_at,license_kind,discipline,sport_kind,age_category,gender_category)
+     SELECT $1,'ACTIVE',now(),'2026-12-31','STUDENT','كرة القدم','TEAM','U15','MALE'
      WHERE NOT EXISTS (SELECT 1 FROM sports_licenses WHERE participant_id=$1)
      RETURNING id`,
+    [participantIds[0]]
+  );
+  await pool.query(
+    `UPDATE sports_licenses SET license_kind=COALESCE(license_kind,'STUDENT'), discipline=COALESCE(discipline,'كرة القدم'),
+       sport_kind=COALESCE(sport_kind,'TEAM'), age_category=COALESCE(age_category,'U15'), gender_category=COALESCE(gender_category,'MALE')
+     WHERE participant_id=$1`,
     [participantIds[0]]
   );
   const { createHash } = await import('node:crypto');

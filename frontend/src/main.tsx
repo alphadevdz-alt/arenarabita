@@ -90,16 +90,34 @@ function App() {
             </form>
             {error && <div className="alert error">{error}</div>}
             {result && (
-              <div className="result-card">
-                <CheckCircle2 size={30} />
-                <div>
-                  <strong>{result.role ? `تم التحقق من انخراط ${result.role === 'COACH' ? 'مدرب' : result.role === 'STUDENT' ? 'تلميذ' : result.role}` : 'تم التحقق من الترخيص'}</strong>
-                  <span>الحالة: {result.status}</span>
-                  {result.institutionName && <small>المؤسسة: {result.institutionName}</small>}
-                  {result.issuedAt && <small>تاريخ الإصدار: {new Date(result.issuedAt).toLocaleDateString('ar-DZ')}</small>}
-                  {result.expiresAt && <small>تاريخ الانتهاء: {new Date(result.expiresAt).toLocaleDateString('ar-DZ')}</small>}
-                </div>
-              </div>
+              <article className="license-card">
+                <header>
+                  <CheckCircle2 size={28} />
+                  <div>
+                    <small>بطاقة تحقق معتمدة · NSSMS</small>
+                    <strong>
+                      {result.givenName || result.familyName
+                        ? `${result.givenName ?? ''} ${result.familyName ?? ''}`.trim()
+                        : result.role === 'COACH' ? 'انخراط مدرب' : result.role === 'STUDENT' ? 'انخراط تلميذ' : 'ترخيص رياضي معتمد'}
+                    </strong>
+                  </div>
+                  <span className="badge">{result.status}</span>
+                </header>
+                <dl>
+                  {result.givenName && <div><dt>الاسم</dt><dd>{result.givenName}</dd></div>}
+                  {result.familyName && <div><dt>اللقب</dt><dd>{result.familyName}</dd></div>}
+                  <div><dt>نوع الترخيص</dt><dd>{
+                    ({ STUDENT: 'تلميذ / Student', COACH: 'مدرب / Coach', OFFICIAL: 'إطار رسمي', STUD: 'تلميذ' } as Record<string, string>)[result.licenseKind ?? result.role] ?? result.licenseKind ?? result.role ?? 'ترخيص رياضي'
+                  }</dd></div>
+                  <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
+                  <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
+                  {result.sportKind && <div><dt>طبيعة النشاط</dt><dd>{result.sportKind === 'TEAM' ? 'جماعي' : result.sportKind === 'INDIVIDUAL' ? 'فردي' : result.sportKind}</dd></div>}
+                  {result.genderCategory && <div><dt>الصنف</dt><dd>{result.genderCategory === 'MALE' ? 'ذكور' : result.genderCategory === 'FEMALE' ? 'إناث' : 'مختلط'}</dd></div>}
+                  {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
+                  {result.issuedAt && <div><dt>الإصدار</dt><dd>{new Date(result.issuedAt).toLocaleDateString('ar-DZ')}</dd></div>}
+                  {result.expiresAt && <div><dt>الانتهاء</dt><dd>{new Date(result.expiresAt).toLocaleDateString('ar-DZ')}</dd></div>}
+                </dl>
+              </article>
             )}
           </section>
         )}

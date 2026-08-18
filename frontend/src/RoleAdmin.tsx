@@ -102,7 +102,7 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
         <div className="admin-head">
           <div>
             <div className="eyebrow"><LayoutDashboard size={18} /> هرم التسيير · Governance cockpit</div>
-            <h1>مرحبًا، {user.displayName ?? user.username}</h1>
+            <h1>مرحبًا، {user.username}</h1>
             <p>{user.roles?.map((role: string) => labels[role] ?? role).join(' · ')}</p>
           </div>
           <button className="secondary" onClick={logout}><LogOut size={16} /> خروج</button>
@@ -414,6 +414,7 @@ function Licenses({ token, canIssue, canApply }: { token: string; canIssue: bool
   const [participants, setParticipants] = useState<any[]>([]);
   const [participantId, setParticipantId] = useState('');
   const [issued, setIssued] = useState('');
+  const [meta, setMeta] = useState({ licenseKind: 'STUDENT', discipline: 'كرة القدم', sportKind: 'TEAM', ageCategory: 'U15', genderCategory: 'MALE' });
   function load() {
     api('/api/v1/admin/licenses', token).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
     api('/api/v1/admin/participants', token).then((d) => setParticipants(d.data ?? [])).catch(() => setParticipants([]));
@@ -426,7 +427,7 @@ function Licenses({ token, canIssue, canApply }: { token: string; canIssue: bool
   }
   async function issue(e: React.FormEvent) {
     e.preventDefault();
-    const result = await api('/api/v1/admin/licenses', token, { method: 'POST', body: JSON.stringify({ participantId }) });
+    const result = await api('/api/v1/admin/licenses', token, { method: 'POST', body: JSON.stringify({ participantId, ...meta }) });
     setIssued(result.verificationReference ?? '');
     load();
   }
@@ -457,7 +458,9 @@ function Licenses({ token, canIssue, canApply }: { token: string; canIssue: bool
       <div className="data-table">
         {rows.map((row) => (
           <div className="data-row" key={row.id}>
-            <span>{row.status}</span>
+            <span>{row.given_name} {row.family_name}</span>
+            <span>{row.discipline ?? '—'}</span>
+            <small>{row.age_category ?? '—'} · {row.license_kind ?? 'STUDENT'} · {row.status}</small>
             <small>{row.issued_at ? new Date(row.issued_at).toLocaleDateString('ar-DZ') : '—'}</small>
             {canIssue && licenseNext[row.status] && <button className="secondary" onClick={() => advance(row)}>{licenseNext[row.status]}</button>}
           </div>
