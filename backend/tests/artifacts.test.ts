@@ -10,6 +10,8 @@ describe('delivery artifacts', () => {
     expect(document.paths['/api/v1/auth/me']).toBeDefined();
     expect((document.paths['/api/v1/auth/me'] as any).get.security).toEqual([{ bearerAuth: [] }]);
     expect(document.paths['/api/v1/admin/reports/status-breakdown']).toBeDefined();
+    expect(document.paths['/api/v1/auth/institution-register']).toBeDefined();
+    expect(document.paths['/api/v1/association/institution-registrations/{userId}/reject']).toBeDefined();
     expect(document.paths['/api/v1/public/licenses/verify/{reference}']).toBeDefined();
   });
   it('keeps demo account seeding idempotent', async () => {

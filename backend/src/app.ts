@@ -89,6 +89,17 @@ export function buildApp() {
     if (!result.rowCount) return reply.code(404).send({ error: 'pending_registration_not_found' });
     await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status) VALUES($1,$2,$3,$4,$5)', [req.auth.userId, 'INSTITUTION_APPROVE', 'USER', userId.data, 'SUCCESS']); return { account: result.rows[0] };
   });
+  app.post('/api/v1/association/institution-registrations/:userId/reject', async (request, reply) => {
+    const req = request as import('./http/auth-guard.js').AuthenticatedRequest; const { requireAuth, hasPermission } = await import('./http/auth-guard.js');
+    if (!requireAuth(req, reply)) return; if (!req.auth.wilayaId || !(await hasPermission(req, 'institution.approve'))) return reply.code(403).send({ error: 'forbidden' });
+    const userId = z.string().uuid().safeParse((request.params as { userId: string }).userId); const parsed = z.object({ reason: z.string().min(3).max(500).optional() }).safeParse(request.body ?? {});
+    if (!userId.success || !parsed.success) return reply.code(400).send({ error: 'validation_error' });
+    const { pool } = await import('./infrastructure/db.js');
+    const result = await pool.query("UPDATE users u SET status='DISABLED',updated_at=now() FROM organizations o WHERE u.id=$1 AND u.organization_id=o.id AND o.wilaya_id=$2 AND u.status='PENDING' RETURNING u.id,u.username,u.status", [userId.data, req.auth.wilayaId]);
+    if (!result.rowCount) return reply.code(404).send({ error: 'pending_registration_not_found' });
+    await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status,metadata) VALUES($1,$2,$3,$4,$5,$6)', [req.auth.userId, 'INSTITUTION_REJECT', 'USER', userId.data, 'SUCCESS', JSON.stringify({ reason: parsed.data.reason ?? null })]);
+    return { account: result.rows[0] };
+  });
   app.post('/api/v1/auth/logout', async (request, reply) => { const session = readSession(request.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!session) return reply.code(401).send({ error: 'unauthorized' }); const { pool } = await import('./infrastructure/db.js'); await pool.query('INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, result_status) VALUES ($1,$2,$3,$4,$5)', [session.userId,'LOGOUT','AUTHENTICATION',session.userId,'SUCCESS']); return { success: true }; });
   app.post('/api/v1/auth/change-password', async (request, reply) => { const session=readSession(request.headers.authorization?.replace(/^Bearer\s+/i,'')); if(!session)return reply.code(401).send({error:'unauthorized'}); const parsed=z.object({currentPassword:z.string().min(12),newPassword:z.string().min(12).max(200)}).safeParse(request.body); if(!parsed.success)return reply.code(400).send({error:'validation_error'}); const {pool}=await import('./infrastructure/db.js'); const user=await pool.query('SELECT password_hash FROM users WHERE id=$1 AND status=\'ACTIVE\'',[session.userId]); if(!user.rowCount||!verifyPassword(parsed.data.currentPassword,user.rows[0].password_hash))return reply.code(401).send({error:'invalid_current_password'}); await pool.query('UPDATE users SET password_hash=$1,updated_at=now() WHERE id=$2',[encodePassword(parsed.data.newPassword),session.userId]); await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status) VALUES($1,$2,$3,$4,$5)',[session.userId,'CHANGE_PASSWORD','AUTHENTICATION',session.userId,'SUCCESS']); return {success:true}; });
   void registerAdminRoutes(app);

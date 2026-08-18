@@ -44,13 +44,13 @@
 - [ ] Validation rules.
 
 ## Phase 5 — Implementation
-- [ ] Backend foundation.
-- [ ] Frontend foundation.
-- [ ] Database implementation.
-- [ ] Authentication.
-- [ ] Authorization.
-- [ ] Core modules.
-- [ ] Reporting.
+- [x] Backend foundation.
+- [x] Frontend foundation.
+- [x] Database implementation.
+- [x] Authentication.
+- [x] Authorization.
+- [x] Core modules.
+- [x] Reporting.
 
 ## Phase 6 — Quality
 - [ ] Unit tests.

@@ -74,6 +74,13 @@
 - Completed browser E2E smoke test: public portal loaded, admin login succeeded, protected workspace rendered, and local services were stopped cleanly afterward.
 - Completed live smoke testing and stopped both local services cleanly; development ports are free.
 
+## 2026-08-18
+
+- Completed the administrative workspace: dashboard, institutions, participants, seasons, competitions, licenses, audit, and reports with role-aware tabs.
+- Added public institution registration and association approval/rejection queue.
+- Allowed scoped participant creation and association license issuance.
+- Documented registration, dashboard, and association review routes in OpenAPI.
+
 ## Unreleased
 
 - Added implementation readiness assessment and proposed technical architecture.
