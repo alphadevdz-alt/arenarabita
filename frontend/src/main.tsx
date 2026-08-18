@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, CheckCircle2, FileCheck2, Landmark, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
 import { HonorsBoard, PlayerCard, Scoreboard, TeamsBoard } from './PublicShowcase';
+import { HomeArena } from './HomeArena';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL ?? '';
@@ -58,7 +59,7 @@ function App() {
         </nav>
       </header>
       <main>
-        {view === 'home' && <Home onVerify={() => setView('verify')} onMore={() => setView('announcements')} />}
+        {view === 'home' && <HomeArena onVerify={() => setView('verify')} onMore={() => setView('announcements')} onResults={() => setView('results')} onCompetitions={() => setView('competitions')} />}
         {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
         {view === 'competitions' && <CompetitionsListing />}
         {view === 'teams' && <TeamsBoard onPlayer={(id) => { setPlayerId(id); setView('player'); }} />}
@@ -98,74 +99,6 @@ function App() {
       </footer>
     </div>
   );
-}
-
-function Home({ onVerify, onMore }: { onVerify: () => void; onMore: () => void }) {
-  const [stats, setStats] = useState({ seasons: '—', competitions: '—', announcements: '—' });
-  const [news, setNews] = useState<any[]>([]);
-  useEffect(() => {
-    Promise.all([
-      fetch(`${API}/api/v1/public/seasons`).then((r) => r.json()).catch(() => ({ data: [] })),
-      fetch(`${API}/api/v1/public/competitions`).then((r) => r.json()).catch(() => ({ data: [] })),
-      fetch(`${API}/api/v1/public/announcements`).then((r) => r.json()).catch(() => ({ data: [] }))
-    ]).then(([seasons, competitions, announcements]) => {
-      setStats({
-        seasons: String((seasons.data ?? []).length),
-        competitions: String((competitions.data ?? []).length),
-        announcements: String((announcements.data ?? []).length)
-      });
-      setNews((announcements.data ?? []).slice(0, 3));
-    });
-  }, []);
-
-  return (
-    <>
-      <section className="hero">
-        <div>
-          <div className="eyebrow"><ShieldCheck size={18} /> منصة حكومية رقمية</div>
-          <h1>تسيير الرياضة المدرسية<br /><em>بثقة وشفافية</em></h1>
-          <p className="lede">منصة موحّدة للمواسم والمنافسات والإجازات الرقمية، مع سجل تدقيق محفوظ وتحقق عام لا يكشف البيانات الداخلية.</p>
-          <div className="hero-actions">
-            <button className="primary" onClick={onVerify}><QrCode size={18} /> تحقق من ترخيص</button>
-            <button className="secondary" onClick={onMore}>الإعلانات الرسمية</button>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <div className="seal">ن<br /><small>NSSMS</small></div>
-        </div>
-      </section>
-      <section className="stats">
-        <Stat icon={<Trophy />} number={stats.seasons} label="مواسم منشورة" />
-        <Stat icon={<Users />} number={stats.competitions} label="منافسات معتمدة" />
-        <Stat icon={<FileCheck2 />} number={stats.announcements} label="إعلانات رسمية" />
-      </section>
-      <section className="pillars">
-        <article className="pillar"><Landmark size={20} color="#0f6b4a" /><h3>حوكمة رسمية</h3><p>صلاحيات حسب النطاق الوطني والولائي والدائرة والمؤسسة، دون حذف نهائي للسجلات.</p></article>
-        <article className="pillar"><QrCode size={20} color="#0f6b4a" /><h3>إجازة رقمية</h3><p>مرجع تحقق عام يحمي المعرّفات الداخلية ويعرض الحالة المعتمدة فقط.</p></article>
-        <article className="pillar"><ShieldCheck size={20} color="#0f6b4a" /><h3>أثر قابل للمراجعة</h3><p>كل قرار إداري يُسجَّل في تدقيق محمي لا يُعدَّل ولا يُحذف.</p></article>
-      </section>
-      <section className="preview">
-        <div className="eyebrow">آخر الإعلانات</div>
-        <div className="cards">
-          {news.length === 0 && <div className="empty-state">لا توجد إعلانات منشورة حالياً.</div>}
-          {news.map((row) => (
-            <article className="item-card" key={row.id}>
-              {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box"><FileCheck2 /></div>}
-              <div>
-                <h3>{row.title}</h3>
-                <p>{row.body}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-        <div className="hero-actions"><button className="secondary" onClick={onMore}>عرض كل الإعلانات</button></div>
-      </section>
-    </>
-  );
-}
-
-function Stat({ icon, number, label }: { icon: React.ReactNode; number: string; label: string }) {
-  return <div className="stat"><span>{icon}</span><div><b>{number}</b><small>{label}</small></div></div>;
 }
 
 function CompetitionsListing() {
