@@ -121,14 +121,14 @@ export async function registerCardRoutes(app: FastifyInstance) {
     if (!hasRole(req, ['SYSTEM_ADMINISTRATOR', 'NATIONAL_ADMINISTRATOR', 'ASSOCIATION_ADMINISTRATOR', 'MEMBER_INSTITUTION_USER'])) return reply.code(403).send({ error: 'forbidden' });
     const query = z.object({ competitionId: z.string().uuid().optional(), institutionId: z.string().uuid().optional() }).parse(request.query);
     const values: unknown[] = ["ISSUED"];
-    const where = ["status=$1"];
-    if (query.competitionId) { values.push(query.competitionId); where.push(`competition_id=$${values.length}`); }
-    if (query.institutionId) { values.push(query.institutionId); where.push(`institution_id=$${values.length}`); }
+    const where = ["c.status=$1"];
+    if (query.competitionId) { values.push(query.competitionId); where.push(`c.competition_id=$${values.length}`); }
+    if (query.institutionId) { values.push(query.institutionId); where.push(`c.institution_id=$${values.length}`); }
     if (req.auth!.institutionId && req.auth!.roles.includes('MEMBER_INSTITUTION_USER')) {
       values.push(req.auth!.institutionId);
-      where.push(`institution_id=$${values.length}`);
+      where.push(`c.institution_id=$${values.length}`);
     }
-    const result = await pool.query(`SELECT id,card_number,holder_kind,given_name,family_name,discipline,age_category,gender_category,sport_kind,season_name,competition_name,institution_name,wilaya_name,status,issued_at,competition_id,institution_id FROM enrollment_cards WHERE ${where.join(' AND ')} ORDER BY holder_kind, family_name, given_name`, values);
+    const result = await pool.query(`SELECT c.id,c.card_number,c.holder_kind,c.given_name,c.family_name,c.discipline,c.age_category,c.gender_category,c.sport_kind,c.season_name,c.competition_name,c.institution_name,c.wilaya_name,c.status,c.issued_at,c.competition_id,c.institution_id,COALESCE(c.portrait_url,p.portrait_url) AS portrait_url FROM enrollment_cards c LEFT JOIN participants p ON p.id=c.participant_id WHERE ${where.join(' AND ')} ORDER BY c.holder_kind, c.family_name, c.given_name`, values);
     return { data: result.rows };
   });
 
@@ -154,15 +154,15 @@ export async function registerCardRoutes(app: FastifyInstance) {
     if (!context.rowCount) return reply.code(404).send({ error: 'not_found' });
     const ctx = context.rows[0];
     const students = await pool.query(
-      `SELECT p.id, p.given_name, p.family_name FROM competition_entries e
+      `SELECT p.id, p.given_name, p.family_name, p.portrait_url, p.public_alias FROM competition_entries e
        JOIN participants p ON p.id=e.participant_id
        WHERE e.competition_id=$1 AND p.institution_id=$2 AND e.archived_at IS NULL AND e.confirmation_status='CONFIRMED'`,
       [parsed.data.competitionId, parsed.data.institutionId]
     );
     if (!students.rowCount) return reply.code(409).send({ error: 'no_confirmed_students' });
 
-    const issued: Array<{ id: string; cardNumber: string; holderKind: string; givenName: string; familyName: string; reference: string }> = [];
-    const insertCard = async (holderKind: string, givenName: string, familyName: string, participantId: string | null) => {
+    const issued: Array<{ id: string; cardNumber: string; holderKind: string; givenName: string; familyName: string; reference: string; portraitUrl?: string | null }> = [];
+    const insertCard = async (holderKind: string, givenName: string, familyName: string, participantId: string | null, portraitUrl: string | null) => {
       const existing = participantId
         ? await pool.query("SELECT id FROM enrollment_cards WHERE competition_id=$1 AND participant_id=$2 AND holder_kind='STUDENT' AND status='ISSUED'", [parsed.data.competitionId, participantId])
         : await pool.query('SELECT id FROM enrollment_cards WHERE competition_id=$1 AND institution_id=$2 AND holder_kind=$3 AND status=$4 AND participant_id IS NULL', [parsed.data.competitionId, parsed.data.institutionId, holderKind, 'ISSUED']);
@@ -171,22 +171,52 @@ export async function registerCardRoutes(app: FastifyInstance) {
       const raw = `${number}-${randomBytes(4).toString('hex').toUpperCase()}`;
       const hash = createHash('sha256').update(raw).digest('hex');
       const row = await pool.query(
-        `INSERT INTO enrollment_cards(card_number,reference_hash,holder_kind,institution_id,competition_id,participant_id,given_name,family_name,discipline,age_category,gender_category,sport_kind,season_name,competition_name,institution_name,wilaya_name,issued_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
-        [number, hash, holderKind, parsed.data.institutionId, parsed.data.competitionId, participantId, givenName, familyName, ctx.discipline, ctx.age_category, ctx.gender_category, ctx.sport_kind, ctx.season_name, ctx.competition_name, ctx.institution_name, ctx.wilaya_name, req.auth!.userId]
+        `INSERT INTO enrollment_cards(card_number,reference_hash,holder_kind,institution_id,competition_id,participant_id,given_name,family_name,discipline,age_category,gender_category,sport_kind,season_name,competition_name,institution_name,wilaya_name,issued_by,portrait_url)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
+        [number, hash, holderKind, parsed.data.institutionId, parsed.data.competitionId, participantId, givenName, familyName, ctx.discipline, ctx.age_category, ctx.gender_category, ctx.sport_kind, ctx.season_name, ctx.competition_name, ctx.institution_name, ctx.wilaya_name, req.auth!.userId, portraitUrl]
       );
-      issued.push({ id: row.rows[0].id, cardNumber: number, holderKind, givenName, familyName, reference: raw });
+      issued.push({ id: row.rows[0].id, cardNumber: number, holderKind, givenName, familyName, reference: raw, portraitUrl });
     };
 
     for (const student of students.rows) {
-      await insertCard('STUDENT', student.given_name, student.family_name, student.id);
+      await insertCard('STUDENT', student.public_alias || student.given_name, student.family_name, student.id, student.portrait_url);
     }
     const [coachGiven, ...coachRest] = String(participation.rows[0].coach_name).trim().split(/\s+/);
     const [repGiven, ...repRest] = String(participation.rows[0].representative_name).trim().split(/\s+/);
-    await insertCard('COACH', coachGiven, coachRest.join(' ') || coachGiven, null);
-    await insertCard('INSTITUTION_REPRESENTATIVE', repGiven, repRest.join(' ') || repGiven, null);
+    await insertCard('COACH', coachGiven, coachRest.join(' ') || coachGiven, null, '/media/judo.jpg');
+    await insertCard('INSTITUTION_REPRESENTATIVE', repGiven, repRest.join(' ') || repGiven, null, '/media/season-open.jpg');
 
     await audit(req.auth!.userId, 'ISSUE_ENROLLMENT_CARDS', 'INSTITUTION', parsed.data.institutionId, { competitionId: parsed.data.competitionId, count: issued.length });
     return reply.code(201).send({ data: issued, printSpec: { format: 'ISO-ID-1 / CR80', widthMm: 85.6, heightMm: 54, sheet: 'A4 8-up' } });
+  });
+
+  app.post('/api/v1/admin/cards/issue-all', async (request, reply) => {
+    const req = request as AuthenticatedRequest;
+    if (!requireAuth(req, reply)) return;
+    if (!hasRole(req, ['SYSTEM_ADMINISTRATOR', 'ASSOCIATION_ADMINISTRATOR'])) return reply.code(403).send({ error: 'forbidden' });
+    const pairs = await pool.query(
+      `SELECT DISTINCT p.institution_id, e.competition_id
+       FROM competition_entries e
+       JOIN participants p ON p.id=e.participant_id
+       WHERE e.archived_at IS NULL AND e.confirmation_status='CONFIRMED'`
+    );
+    let created = 0;
+    for (const pair of pairs.rows) {
+      await pool.query(
+        `INSERT INTO institution_competitions(institution_id,competition_id,status,coach_name,representative_name,decided_by,decided_at)
+         VALUES ($1,$2,'ACCEPTED','مدرب المؤسسة','ممثل المؤسسة',$3,now())
+         ON CONFLICT (institution_id,competition_id) DO UPDATE SET status='ACCEPTED'`,
+        [pair.institution_id, pair.competition_id, req.auth!.userId]
+      );
+      const issued = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/cards/issue',
+        headers: { authorization: request.headers.authorization ?? '', 'content-type': 'application/json' },
+        payload: { institutionId: pair.institution_id, competitionId: pair.competition_id }
+      });
+      if (issued.statusCode < 300) created += issued.json().data?.length ?? 0;
+    }
+    await audit(req.auth!.userId, 'ISSUE_ALL_ENROLLMENT_CARDS', 'SYSTEM', req.auth!.userId, { created, groups: pairs.rowCount });
+    return { created, groups: pairs.rowCount, printSpec: { format: 'ISO-ID-1 / CR80', widthMm: 85.6, heightMm: 54, sheet: 'A4 8-up' } };
   });
 }

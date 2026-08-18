@@ -49,20 +49,21 @@ export function EnrollmentDesk({ token, canIssue }: { token: string; canIssue: b
 
   const selectedEntries = entries.filter((e) => selected && e.competition_id === selected.competitionId && e.institution_id === selected.institutionId);
   const selectedCards = cards.filter((c) => selected && c.competition_id === selected.competitionId && c.institution_id === selected.institutionId);
-  const printable = fresh.length ? fresh.map((item) => ({
+  const printable = (fresh.length ? fresh.map((item) => ({
     ...item,
     holder_kind: item.holderKind,
     given_name: item.givenName,
     family_name: item.familyName,
     card_number: item.cardNumber,
     reference: item.reference,
+    portrait_url: item.portraitUrl ?? item.portrait_url,
     competition_name: rows.find((r) => r.competition_id === selected?.competitionId)?.competition_name,
     institution_name: rows.find((r) => r.institution_id === selected?.institutionId)?.institution_name,
     season_name: rows.find((r) => r.competition_id === selected?.competitionId)?.season_name,
     age_category: rows.find((r) => r.competition_id === selected?.competitionId)?.age_category,
     discipline: rows.find((r) => r.competition_id === selected?.competitionId)?.discipline,
     wilaya_name: rows.find((r) => r.institution_id === selected?.institutionId)?.wilaya_name
-  })) : selectedCards;
+  })) : (selected ? selectedCards : cards));
 
   async function accept() {
     if (!selected) return;
@@ -85,7 +86,7 @@ export function EnrollmentDesk({ token, canIssue }: { token: string; canIssue: b
     try {
       const result = await api('/api/v1/admin/cards/issue', token, { method: 'POST', body: JSON.stringify(selected) });
       setFresh(result.data ?? []);
-      setMessage(`صدرت ${result.data?.length ?? 0} بطاقة. اطبعها الآن (مقاس CR80 / 85.6×54مم).`);
+      setMessage(`صدرت ${result.data?.length ?? 0} بطاقة بنفس التصميم. اطبعها الآن (CR80).`);
       load();
     } catch (error) {
       setMessage(error instanceof Error && error.message === 'institution_not_accepted'
@@ -96,13 +97,24 @@ export function EnrollmentDesk({ token, canIssue }: { token: string; canIssue: b
     }
   }
 
+  async function issueAll() {
+    try {
+      const result = await api('/api/v1/admin/cards/issue-all', token, { method: 'POST', body: '{}' });
+      setSelected(null);
+      setFresh([]);
+      setMessage(`صدرت ${result.created ?? 0} بطاقة لكل المنخرطين المؤكَّدين — نفس القالب، تختلف الصورة والبيانات فقط.`);
+      load();
+    } catch { setMessage('تعذر الإصدار الجماعي.'); }
+  }
+
   return (
     <div className="card-desk">
       <div className="section-head">
         <h3><CreditCard size={18} /> بطاقات الانخراط للطباعة</h3>
         <small>ISO-ID-1 / CR80 — 85.6 × 54 مم · ثماني بطاقات على A4</small>
       </div>
-      <p className="lede">بعد قبول الرابطة الولائية للمؤسسة في المنافسة وتأكيد ملفات التلاميذ، تُولَّد بطاقة لكل تلميذ مؤكد وبطاقة للمدرب وبطاقة لممثل المؤسسة.</p>
+      <p className="lede">القالب واحد لكل المنخرطين (CR80). تختلف فقط الاسم والصورة والولاية والمنافسة والرقم. بعد قبول الرابطة وتأكيد الملفات تُولَّد بطاقة لكل تلميذ ومدرب وممثل مؤسسة.</p>
+      {canIssue && <div className="print-toolbar"><button type="button" className="primary" onClick={() => void issueAll()}>توليد بطاقات كل المنخرطين المؤكَّدين</button></div>}
       {message && <div className="empty">{message}</div>}
       <div className="data-table">
         {rows.map((row) => (
@@ -167,7 +179,11 @@ export function EnrollmentDesk({ token, canIssue }: { token: string; canIssue: b
                 <em>{kindLabel[card.holder_kind] ?? card.holder_kind}</em>
               </header>
               <div className="id-main">
-                <div className="id-photo">{(card.given_name ?? 'ت')[0]}{(card.family_name ?? 'م')[0]}</div>
+                <div className="id-photo">
+                  {card.portrait_url
+                    ? <img src={card.portrait_url} alt="" />
+                    : <span>{(card.given_name ?? 'ت')[0]}{(card.family_name ?? 'م')[0]}</span>}
+                </div>
                 <div>
                   <strong>{card.given_name} {card.family_name}</strong>
                   <p>{card.institution_name}</p>
