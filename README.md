@@ -2,7 +2,7 @@
 
 ## National School Sports Management System
 
-**Status:** WORK IN PROGRESS (WIP)
+**Status:** Feature-complete local foundation (WIP for production approvals)
 
 NSSMS is a proposed national governmental platform for managing school sports in Algeria.
 

@@ -30,4 +30,10 @@ Initial component inventory:
 - Pagination.
 - QR verification result.
 
-Exact visual tokens will be defined after approval of the official visual identity.
+## Applied local tokens
+- Primary green `#0f6b4a` for official actions.
+- Paper background `#f4f8f5` and white cards.
+- Gold accent on the official seal.
+- A thin national tricolor bar reserved for identity only, not for decoration of data.
+
+These tokens remain a local visual baseline until an official identity is approved.

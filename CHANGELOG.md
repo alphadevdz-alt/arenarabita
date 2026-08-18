@@ -76,6 +76,10 @@
 
 ## 2026-08-18
 
+- Refined the public and administrative visual system into a calmer governmental identity, richer home narrative, live public counts, and clearer empty/loading states without changing the core governance model.
+
+## 2026-08-18 — features
+
 - Completed remaining operational modules: public announcements, competition entries, license applications, public season/competition details, user/account, results, and lifecycle transitions in the administration portal.
 
 ## 2026-08-18 — workspace

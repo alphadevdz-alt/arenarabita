@@ -146,11 +146,12 @@ function ScopedDashboard({ token, roles }: { token: string; roles: string[] }) {
   if (!result) return <div className="empty">جارٍ تحميل لوحة المستخدم…</div>;
   if (result.error) return <div className="alert error">{result.error}</div>;
   const scopeLabel = result.scope === 'national' ? 'النطاق الوطني الكامل' : result.scope === 'organization' ? 'بيانات الرابطة المرتبطة بالحساب' : result.scope === 'daira' ? 'نطاق الدائرة' : 'بيانات المؤسسة المنخرطة المرتبطة بالحساب';
+  const metricLabels: Record<string, string> = { organizations: 'الرابطات', institutions: 'المؤسسات', participants: 'المشاركون', licenses: 'التراخيص' };
   return (
     <>
       <div className="workspace-summary">
         {Object.entries(result.data ?? {}).map(([key, value]) => (
-          <div className="summary-card" key={key}><small>{key}</small><b>{String(value)}</b></div>
+          <div className="summary-card" key={key}><small>{metricLabels[key] ?? key}</small><b>{String(value)}</b></div>
         ))}
       </div>
       <div className="panel"><h3>نطاق الوصول</h3><p>{scopeLabel}</p><small>{roles.map((role) => labels[role] ?? role).join(' · ')}</small></div>
