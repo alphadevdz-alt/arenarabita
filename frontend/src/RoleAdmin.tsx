@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FileCheck2, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
+import { RoleHome, menusFor, primaryRole, ROLE_META } from './RoleCockpit';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 
@@ -76,6 +77,14 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
               {error && <div className="alert error">{error}</div>}
               <button className="primary">دخول إلى لوحة التحكم</button>
             </form>
+            <div className="demo-roles">
+              <button type="button" onClick={() => { setUsername('demo.admin'); setPassword('NssmsDemoAdmin-2026!'); }}>مشرف عام — demo.admin</button>
+              <button type="button" onClick={() => { setUsername('demo.national'); setPassword('NssmsDemoNational-2026!'); }}>ممثل وطني — demo.national</button>
+              <button type="button" onClick={() => { setUsername('demo.association.admin'); setPassword('NssmsAssocAdmin-2026!'); }}>رابطة ولائية — demo.association.admin</button>
+              <button type="button" onClick={() => { setUsername('demo.association.rep'); setPassword('NssmsAssocRep-2026!'); }}>ممثل رابطة — demo.association.rep</button>
+              <button type="button" onClick={() => { setUsername('demo.daira.officer'); setPassword('NssmsDairaOff-2026!'); }}>ممثل دائرة — demo.daira.officer</button>
+              <button type="button" onClick={() => { setUsername('demo.institution'); setPassword('NssmsInstitution-2026!'); }}>مؤسسة منخرطة — demo.institution</button>
+            </div>
           </div>
         </section>
       </div>
@@ -95,7 +104,7 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
           </div>
           <button className="secondary" onClick={logout}><LogOut size={16} /> خروج</button>
         </div>
-        <AdminWorkspace token={localStorage.getItem('nssms_token') ?? ''} roles={user.roles ?? []} />
+        <AdminWorkspace token={localStorage.getItem('nssms_token') ?? ''} user={user} />
       </section>
     </div>
   );

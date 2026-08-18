@@ -335,6 +335,19 @@ footer {
 }
 .admin-shell .back { color: #8fd0b0; }
 footer a { color: #66776f; }
+.cockpit { display: grid; grid-template-columns: 240px 1fr; gap: 18px; margin-top: 18px; min-height: 70vh; }
+.cockpit-side { background: #102018; border: 1px solid #1f3d30; border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.side-brand { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; color: #e8f4ee; }
+.cockpit-side button { background: transparent; color: #9ab5a8; text-align: right; padding: 10px 12px; border-radius: 12px; }
+.cockpit-side button.on { background: #1a3a2b; color: #fff; font-weight: 800; }
+.rank-banner { display: flex; gap: 14px; padding: 20px; border: 2px solid; border-radius: 20px; background: #13261d; margin-bottom: 16px; }
+.rank-dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 8px; }
+.hierarchy { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.hierarchy span { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: #102018; color: #7d978b; font-size: 12px; }
+.hierarchy span.on { background: #1a3a2b; color: #d7f5e6; }
+.demo-roles { display: grid; gap: 6px; margin-top: 16px; }
+.demo-roles button { background: #102018; color: #cfe6da; border-radius: 10px; padding: 8px; font-size: 12px; text-align: right; }
+@media (max-width: 860px) { .cockpit { grid-template-columns: 1fr; } }
 
 @media (max-width: 860px) {
   .topbar { flex-wrap: wrap; }
