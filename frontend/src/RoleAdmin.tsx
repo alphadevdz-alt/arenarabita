@@ -341,7 +341,7 @@ function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
           </select>
           <select value={form.participantId} onChange={(e) => setForm({ ...form, participantId: e.target.value })} required>
             <option value="">المشارك</option>
-            {participants.map((p) => <option key={p.id} value={p.id}>{p.given_name} {p.family_name}</option>)}
+            {participants.map((p) => <option key={p.id} value={p.id}>{p.public_alias || `${p.given_name} ${p.family_name}`}</option>)}
           </select>
           <button className="primary">تسجيل</button>
         </form>
@@ -392,9 +392,9 @@ function Participants({ token, canCreate }: { token: string; canCreate: boolean 
       <div className="data-table">
         {rows.map((row) => (
           <div className="data-row" key={row.id}>
+            <span>{row.public_alias || `${row.given_name} ${row.family_name}`}</span>
             <span>{row.given_name} {row.family_name}</span>
-            <span>{row.institution_name}</span>
-            <small>{row.status}</small>
+            <small>{row.position_label || 'تلميذ'} · رقم {row.jersey_number ?? '—'} · {row.date_of_birth ? String(row.date_of_birth).slice(0, 10) : '—'} · {row.status}</small>
           </div>
         ))}
         {!rows.length && <div className="empty">لا يوجد مشاركون في النطاق الحالي.</div>}
