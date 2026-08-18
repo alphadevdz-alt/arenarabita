@@ -61,36 +61,43 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
 
   if (!user) {
     return (
-      <section className="login-page">
-        <button className="back" onClick={onBack}>← العودة للبوابة العامة</button>
-        <div className="login-card">
-          <div className="brand-mark">ن</div>
-          <div className="eyebrow"><ShieldCheck size={18} /> وصول حسب الصلاحية</div>
-          <h1>تسجيل الدخول</h1>
-          <form onSubmit={submit}>
-            <label>اسم المستخدم<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
-            <label>كلمة المرور<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required /></label>
-            {error && <div className="alert error">{error}</div>}
-            <button className="primary">دخول إلى لوحة التحكم</button>
-          </form>
-        </div>
-      </section>
+      <div className={standalone ? 'admin-shell' : undefined} dir="rtl">
+        {standalone && <div className="official-bar" />}
+        <section className="login-page">
+          <a className="back" href="/">← البوابة العامة للجمهور</a>
+          <div className="login-card">
+            <div className="brand-mark">ن</div>
+            <div className="eyebrow"><ShieldCheck size={18} /> فضاء العاملين فقط</div>
+            <h1>دخول الإدارة</h1>
+            <p>هذه الصفحة منفصلة تماماً عن واجهة الجمهور.</p>
+            <form onSubmit={submit}>
+              <label>اسم المستخدم<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
+              <label>كلمة المرور<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required /></label>
+              {error && <div className="alert error">{error}</div>}
+              <button className="primary">دخول إلى لوحة التحكم</button>
+            </form>
+          </div>
+        </section>
+      </div>
     );
   }
 
   return (
-    <section className="admin">
-      <button className="back" onClick={onBack}>← العودة</button>
-      <div className="admin-head">
-        <div>
-          <div className="eyebrow"><LayoutDashboard size={18} /> لوحة المستخدم</div>
-          <h1>مرحبًا، {user.username}</h1>
-          <p>{user.roles?.map((role: string) => labels[role] ?? role).join(' · ')}</p>
+    <div className={standalone ? 'admin-shell' : undefined} dir="rtl">
+      {standalone && <div className="official-bar" />}
+      <section className="admin">
+        <a className="back" href="/">← البوابة العامة</a>
+        <div className="admin-head">
+          <div>
+            <div className="eyebrow"><LayoutDashboard size={18} /> فضاء التسيير</div>
+            <h1>مرحبًا، {user.username}</h1>
+            <p>{user.roles?.map((role: string) => labels[role] ?? role).join(' · ')}</p>
+          </div>
+          <button className="secondary" onClick={logout}><LogOut size={16} /> خروج</button>
         </div>
-        <button className="secondary" onClick={logout}><LogOut size={16} /> خروج</button>
-      </div>
-      <AdminWorkspace token={localStorage.getItem('nssms_token') ?? ''} roles={user.roles ?? []} />
-    </section>
+        <AdminWorkspace token={localStorage.getItem('nssms_token') ?? ''} roles={user.roles ?? []} />
+      </section>
+    </div>
   );
 }
 

@@ -8,7 +8,7 @@ const encode = (password) => {
   return `scrypt$${salt}$${scryptSync(password, salt, 64).toString('hex')}`;
 };
 
-const focus = [5, 6, 9, 13, 15, 16, 19, 23, 25, 31];
+const focus = Array.from({ length: 58 }, (_, i) => i + 1);
 const portraits = ['/media/players/p01.jpg', '/media/players/p02.jpg', '/media/players/p03.jpg', '/media/players/p04.jpg', '/media/players/p05.jpg', '/media/players/p06.jpg', '/media/players/p07.jpg', '/media/players/p08.jpg'];
 
 try {
@@ -33,7 +33,7 @@ try {
     const schools = await pool.query(
       `SELECT id,name,name_ar,name_fr,commune_name FROM school_directory
        WHERE wilaya_id=$1 AND cycle='secondaire' AND name IS NOT NULL
-       ORDER BY name LIMIT 3`,
+       ORDER BY name LIMIT 1`,
       [wilayaId]
     );
 

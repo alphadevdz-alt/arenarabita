@@ -1,23 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, CheckCircle2, FileCheck2, Landmark, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
-import { RoleAdmin } from './RoleAdmin';
 import { HonorsBoard, PlayerCard, Scoreboard, TeamsBoard } from './PublicShowcase';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL ?? '';
-type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'verify' | 'register' | 'admin';
-
-function Root() {
-  const [mode, setMode] = useState(location.hash.startsWith('#/admin') ? 'admin' : 'public');
-  useEffect(() => {
-    const sync = () => setMode(location.hash.startsWith('#/admin') ? 'admin' : 'public');
-    window.addEventListener('hashchange', sync);
-    return () => window.removeEventListener('hashchange', sync);
-  }, []);
-  if (mode === 'admin') return <RoleAdmin standalone />;
-  return <App />;
-}
+type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'verify' | 'register';
 
 function App() {
   const [view, setView] = useState<View>('home');
@@ -106,7 +94,7 @@ function App() {
       </main>
       <footer>
         <span>© {new Date().getFullYear()} NSSMS — منصة وطنية لتسيير الرياضة المدرسية</span>
-        <a href="#/admin">فضاء العاملين</a>
+        <a href="/admin.html">فضاء العاملين</a>
       </footer>
     </div>
   );
@@ -332,4 +320,4 @@ function InstitutionRegister() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><Root /></React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
