@@ -86,18 +86,19 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
               <label>اسم المستخدم<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
               <label>كلمة المرور<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required /></label>
               {error && <div className="alert error">{error}</div>}
-              <button className="primary">دخول إلى لوحة التحكم</button>
+              <button className="primary" disabled={busy}>{busy ? 'جارٍ الدخول…' : 'دخول إلى لوحة التحكم'}</button>
             </form>
+            <p className="lede">اضغط رتبة للدخول مباشرة. محاكاة سطيف: 60 مؤسسة بأسماء مستعارة.</p>
             <div className="demo-roles">
-              <button type="button" onClick={() => { setUsername('demo.admin'); setPassword('NssmsDemoAdmin-2026!'); }}>مشرف عام — demo.admin</button>
-              <button type="button" onClick={() => { setUsername('demo.national'); setPassword('NssmsDemoNational-2026!'); }}>ممثل وطني — demo.national</button>
-              <button type="button" onClick={() => { setUsername('demo.association.admin'); setPassword('NssmsAssocAdmin-2026!'); }}>رابطة ولائية — demo.association.admin</button>
-              <button type="button" onClick={() => { setUsername('demo.association.rep'); setPassword('NssmsAssocRep-2026!'); }}>ممثل رابطة — demo.association.rep</button>
-              <button type="button" onClick={() => { setUsername('demo.daira.officer'); setPassword('NssmsDairaOff-2026!'); }}>ممثل دائرة — demo.daira.officer</button>
-              <button type="button" onClick={() => { setUsername('demo.w19.admin'); setPassword('NssmsWilayaAdmin-2026!'); }}>رابطة سطيف — demo.w19.admin</button>
-              <button type="button" onClick={() => { setUsername('demo.w19.rep'); setPassword('NssmsWilayaRep-2026!'); }}>ممثل سطيف — demo.w19.rep</button>
-              <button type="button" onClick={() => { setUsername('demo.w19.daira'); setPassword('NssmsWilayaDaira-2026!'); }}>دائرة سطيف — demo.w19.daira</button>
-              <button type="button" onClick={() => { setUsername('demo.w19.school'); setPassword('NssmsWilayaSchool-2026!'); }}>مؤسسة سطيف — demo.w19.school</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.admin', 'NssmsDemoAdmin-2026!')}>مشرف عام — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.national', 'NssmsDemoNational-2026!')}>ممثل وطني — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.association.admin', 'NssmsAssocAdmin-2026!')}>رابطة سطيف — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.association.rep', 'NssmsAssocRep-2026!')}>ممثل رابطة — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.daira.officer', 'NssmsDairaOff-2026!')}>موظف دائرة — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.institution', 'NssmsInstitution-2026!')}>مؤسسة الشهيد — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.w19.admin', 'NssmsHierarchy-2026!')}>رابطة w19 — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.w19.s01', 'NssmsHierarchy-2026!')}>ثانوية أطلس الهضاب s01 — دخول مباشر</button>
+              <button type="button" disabled={busy} onClick={() => void loginWith('demo.w19.s15', 'NssmsHierarchy-2026!')}>مؤسسة سطيف s15 — دخول مباشر</button>
             </div>
           </div>
         </section>

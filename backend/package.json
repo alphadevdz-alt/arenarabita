@@ -15,6 +15,7 @@
     "seed:simulation": "node scripts/seed-simulation.mjs",
     "seed:national": "node scripts/seed-national-detail.mjs",
     "seed:hierarchy": "node scripts/seed-hierarchy-accounts.mjs",
+    "seed:setif": "node scripts/seed-setif-sixty.mjs",
     "pg:embedded": "node scripts/start-embedded-pg.mjs",
     "test": "vitest run",
     "test:integration": "vitest run tests/db.integration.test.ts tests/workflow.integration.test.ts"
