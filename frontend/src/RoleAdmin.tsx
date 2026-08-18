@@ -158,25 +158,6 @@ function AdminWorkspace({ token, user }: { token: string; user: any }) {
   );
 }
 
-function ScopedDashboard({ token, roles }: { token: string; roles: string[] }) {
-  const [result, setResult] = useState<any>(null);
-  useEffect(() => { api('/api/v1/dashboard/summary', token).then(setResult).catch(() => setResult({ error: 'تعذر تحميل الملخص' })); }, [token]);
-  if (!result) return <div className="empty">جارٍ تحميل لوحة المستخدم…</div>;
-  if (result.error) return <div className="alert error">{result.error}</div>;
-  const scopeLabel = result.scope === 'national' ? 'النطاق الوطني الكامل' : result.scope === 'organization' ? 'بيانات الرابطة المرتبطة بالحساب' : result.scope === 'daira' ? 'نطاق الدائرة' : 'بيانات المؤسسة المنخرطة المرتبطة بالحساب';
-  const metricLabels: Record<string, string> = { organizations: 'الرابطات', institutions: 'المؤسسات', participants: 'المشاركون', licenses: 'التراخيص' };
-  return (
-    <>
-      <div className="workspace-summary">
-        {Object.entries(result.data ?? {}).map(([key, value]) => (
-          <div className="summary-card" key={key}><small>{metricLabels[key] ?? key}</small><b>{String(value)}</b></div>
-        ))}
-      </div>
-      <div className="panel"><h3>نطاق الوصول</h3><p>{scopeLabel}</p><small>{roles.map((role) => labels[role] ?? role).join(' · ')}</small></div>
-    </>
-  );
-}
-
 function Collection({ token, path, title, fields, create }: { token: string; path: string; title: string; fields: string[]; create?: Record<string, string> }) {
   const [rows, setRows] = useState<any[]>([]);
   const [form, setForm] = useState(create ?? {});
@@ -369,14 +350,14 @@ function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
 function Participants({ token, canCreate }: { token: string; canCreate: boolean }) {
   const [rows, setRows] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
-  const [form, setForm] = useState({ institutionId: '', givenName: '', familyName: '' });
+  const [form, setForm] = useState({ institutionId: '', givenName: '', familyName: '', dateOfBirth: '' });
   useEffect(() => {
     api('/api/v1/admin/participants', token).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
-    api('/api/v1/admin/institutions', token).then((d) => setInstitutions(d.data ?? [])).catch(() => setInstitutions([]));
+    api('/api/v1/admin/institutions', token).then((d) => setInstitutions((d.data ?? []).filter((item: any) => item.status !== 'ARCHIVED'))).catch(() => setInstitutions([]));
   }, [token]);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    await api('/api/v1/admin/participants', token, { method: 'POST', body: JSON.stringify(form) });
+    await api('/api/v1/admin/participants', token, { method: 'POST', body: JSON.stringify({ ...form, dateOfBirth: form.dateOfBirth || undefined }) });
     const d = await api('/api/v1/admin/participants', token);
     setRows(d.data ?? []);
   }
@@ -391,6 +372,7 @@ function Participants({ token, canCreate }: { token: string; canCreate: boolean 
           </select>
           <input placeholder="الاسم" value={form.givenName} onChange={(e) => setForm({ ...form, givenName: e.target.value })} required />
           <input placeholder="اللقب" value={form.familyName} onChange={(e) => setForm({ ...form, familyName: e.target.value })} required />
+          <input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} />
           <button className="primary">تسجيل مشارك</button>
         </form>
       )}
@@ -453,7 +435,7 @@ function Licenses({ token, canIssue, canApply }: { token: string; canIssue: bool
           {canIssue && <button className="primary"><FileCheck2 size={16} /> إصدار مباشر</button>}
         </form>
       )}
-      {issued && <div className="result-card"><div><strong>مرجع التحقق العام</strong><span>{issued}</span></div></div>}
+      {issued && <div className="result-card"><div><strong>مرجع تحقق للعاملين فقط</strong><span>{issued}</span></div></div>}
       <div className="data-table">
         {rows.map((row) => (
           <div className="data-row" key={row.id}>
@@ -665,6 +647,41 @@ function StaffVerify({ token }: { token: string }) {
             {result.givenName && <div><dt>الاسم</dt><dd>{result.givenName}</dd></div>}
             {result.familyName && <div><dt>اللقب</dt><dd>{result.familyName}</dd></div>}
             <div><dt>نوع الترخيص</dt><dd>{{ STUDENT: 'تلميذ', COACH: 'مدرب', OFFICIAL: 'إطار رسمي' }[result.licenseKind ?? result.role] ?? result.licenseKind ?? result.role ?? 'رخصة'}</dd></div>
+            <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
+            <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
+            {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
+          </dl>
+        </article>
+      )}
+    </section>
+  );
+}
+
+function Reports({ token }: { token: string }) {
+  const [data, setData] = useState<any>(null);
+  useEffect(() => {
+    Promise.all([api('/api/v1/admin/reports/summary', token), api('/api/v1/admin/reports/status-breakdown', token)])
+      .then(([summary, breakdown]) => setData({ summary: summary.data, breakdown: breakdown.data }))
+      .catch(() => setData({ error: 'تعذر تحميل التقارير' }));
+  }, [token]);
+  if (!data) return <div className="empty">جارٍ تحميل التقارير…</div>;
+  if (data.error) return <div className="alert error">{data.error}</div>;
+  return (
+    <div className="admin-grid">
+      <div className="panel">
+        <h3>ملخص وطني</h3>
+        {Object.entries(data.summary ?? {}).map(([key, value]) => (
+          <div className="overview-stat" key={key}><b>{key}</b><small>{String(value)}</small></div>
+        ))}
+      </div>
+      <div className="panel">
+        <h3>توزيع الحالات</h3>
+        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 12 }}>{JSON.stringify(data.breakdown, null, 2)}</pre>
+      </div>
+    </div>
+  );
+}
+ole] ?? result.licenseKind ?? result.role ?? 'رخصة'}</dd></div>
             <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
             <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
             {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
