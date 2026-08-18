@@ -58,7 +58,7 @@ function App() {
       <main>
         {view === 'home' && <Home onVerify={() => setView('verify')} onAdmin={() => setView('admin')} onMore={() => setView('announcements')} />}
         {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
-        {view === 'competitions' && <Listing title="المنافسات المعتمدة" endpoint="competitions" icon={<Trophy />} />}
+        {view === 'competitions' && <CompetitionsListing />}
         {view === 'results' && <Listing title="النتائج المنشورة" endpoint="results" icon={<BarChart3 />} />}
         {view === 'announcements' && <Listing title="الإعلانات الرسمية" endpoint="announcements" icon={<FileCheck2 />} />}
         {view === 'help' && <Help />}
@@ -162,6 +162,43 @@ function Home({ onVerify, onAdmin, onMore }: { onVerify: () => void; onAdmin: ()
 
 function Stat({ icon, number, label }: { icon: React.ReactNode; number: string; label: string }) {
   return <div className="stat"><span>{icon}</span><div><b>{number}</b><small>{label}</small></div></div>;
+}
+
+function CompetitionsListing() {
+  const [kind, setKind] = useState<'all' | 'INDIVIDUAL' | 'TEAM'>('all');
+  const [rows, setRows] = useState<any[] | null>(null);
+  useEffect(() => {
+    const query = kind === 'all' ? '' : `?sportKind=${kind}`;
+    fetch(`${API}/api/v1/public/competitions${query}`).then((r) => (r.ok ? r.json() : { data: [] })).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
+  }, [kind]);
+  const labels: Record<string, string> = { INDIVIDUAL: 'فردية', TEAM: 'جماعية', REGISTRATION: 'تسجيل', ACTIVE: 'جارية', RESULTS: 'نتائج', CLOSED: 'مغلقة' };
+  return (
+    <section className="listing">
+      <div className="eyebrow"><Trophy /> الرزنامة المعتمدة</div>
+      <h1>المنافسات الفردية والجماعية</h1>
+      <p className="lede">جميع المنافسات أدناه معتمدة ومنشورة للموسم الجاري، بأكثر من سبع بطولات فردية وجماعية.</p>
+      <div className="tabs">
+        <button className={kind === 'all' ? 'selected' : ''} onClick={() => setKind('all')}>الكل</button>
+        <button className={kind === 'INDIVIDUAL' ? 'selected' : ''} onClick={() => setKind('INDIVIDUAL')}>فردية</button>
+        <button className={kind === 'TEAM' ? 'selected' : ''} onClick={() => setKind('TEAM')}>جماعية</button>
+      </div>
+      {!rows && <div className="empty">جارٍ التحميل…</div>}
+      {rows && (
+        <div className="cards">
+          {rows.map((row) => (
+            <article className="item-card" key={row.id}>
+              {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box"><Trophy /></div>}
+              <div>
+                <h3>{row.name}</h3>
+                <p>{row.summary}</p>
+              </div>
+              <span className="badge">{labels[row.sport_kind] ?? ''} · {labels[row.status] ?? row.status}</span>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function Listing({ title, endpoint, icon }: { title: string; endpoint: string; icon: React.ReactNode }) {

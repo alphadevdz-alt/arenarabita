@@ -59,25 +59,39 @@ try {
      RETURNING id`
   );
   const seasonId = season.rows[0]?.id ?? (await pool.query("SELECT id FROM seasons WHERE name='الموسم المدرسي 2025-2026'")).rows[0].id;
+  await pool.query("UPDATE competitions SET name='ألعاب القوى المدرسية' WHERE name='ألعاب القوى المدرسية - سطيف'");
+  await pool.query("UPDATE competitions SET name='كرة القدم المدرسية' WHERE name='كرة القدم المدرسية الولائية'");
 
   const competitions = [
-    ['ألعاب القوى المدرسية - سطيف', 'REGISTRATION', '/media/athletics.jpg', 'سباقات السرعة والتتابع لتلاميذ الثانويات.'],
-    ['كرة القدم المدرسية الولائية', 'ACTIVE', '/media/football.jpg', 'دور مجموعات بين المؤسسات المنخرطة.'],
-    ['كرة السلة الإناث', 'RESULTS', '/media/basketball.jpg', 'نهائيات البطولة الولائية للإناث.']
+    ['ألعاب القوى المدرسية', 'INDIVIDUAL', 'athletics', 'REGISTRATION', '/media/athletics.jpg', 'سباقات السرعة والتتابع والقفز للمؤسسات المنخرطة.'],
+    ['السباحة المدرسية', 'INDIVIDUAL', 'swimming', 'REGISTRATION', '/media/swimming.jpg', 'سباقات حرة وظهر للمراحل المتوسطة والثانوية.'],
+    ['الجودو المدرسي', 'INDIVIDUAL', 'judo', 'ACTIVE', '/media/judo.jpg', 'منافسات الأوزان المعتمدة ذكوراً وإناثاً.'],
+    ['الكاراتيه المدرسي', 'INDIVIDUAL', 'karate', 'ACTIVE', '/media/judo.jpg', 'كوماتيه وكاتا وفق الرزنامة الولائية.'],
+    ['تنس الطاولة', 'INDIVIDUAL', 'table-tennis', 'REGISTRATION', '/media/athletics.jpg', 'فردي وزوجي لتلاميذ المؤسسات.'],
+    ['الريشة الطائرة', 'INDIVIDUAL', 'badminton', 'REGISTRATION', '/media/volleyball.jpg', 'أدوار إقصائية ثم نصف نهائي ونهائي.'],
+    ['الجمباز الإيقاعي', 'INDIVIDUAL', 'gymnastics', 'ACTIVE', '/media/season-open.jpg', 'عروض فردية معتمدة من لجنة التحكيم.'],
+    ['الشطرنج المدرسي', 'INDIVIDUAL', 'chess', 'RESULTS', '/media/season-open.jpg', 'دوري سويسري بنتائج معتمدة.'],
+    ['الدراجات الهوائية', 'INDIVIDUAL', 'cycling', 'REGISTRATION', '/media/athletics.jpg', 'سباق طرق قصير بين المؤسسات.'],
+    ['كرة القدم المدرسية', 'TEAM', 'football', 'ACTIVE', '/media/football.jpg', 'دور مجموعات ثم خروج المغلوب.'],
+    ['كرة القدم المصغرة', 'TEAM', 'futsal', 'REGISTRATION', '/media/football.jpg', 'قاعات مغطاة للمؤسسات المنخرطة.'],
+    ['كرة السلة ذكور', 'TEAM', 'basketball', 'ACTIVE', '/media/basketball.jpg', 'بطولة ولائية للذكور.'],
+    ['كرة السلة إناث', 'TEAM', 'basketball-women', 'RESULTS', '/media/basketball.jpg', 'نهائيات معتمدة للإناث.'],
+    ['الكرة الطائرة', 'TEAM', 'volleyball', 'REGISTRATION', '/media/volleyball.jpg', 'ذهاباً وإياباً بين الثانويات.'],
+    ['كرة اليد', 'TEAM', 'handball', 'ACTIVE', '/media/handball.jpg', 'منافسات جماعية معتمدة للمتوسط والثانوي.']
   ];
   const competitionIds = [];
-  for (const [name, status, imageUrl, summary] of competitions) {
+  for (const [name, sportKind, discipline, status, imageUrl, summary] of competitions) {
     const row = await pool.query(
-      `INSERT INTO competitions(season_id,name,status,start_date,end_date,image_url,summary)
-       SELECT $1,$2,$3::competition_status,'2026-02-01','2026-05-30',$4,$5
+      `INSERT INTO competitions(season_id,name,status,start_date,end_date,image_url,summary,sport_kind,discipline)
+       SELECT $1,$2,$3::competition_status,'2026-02-01','2026-05-30',$4,$5,$6,$7
        WHERE NOT EXISTS (SELECT 1 FROM competitions WHERE name=$2)
        RETURNING id`,
-      [seasonId, name, status, imageUrl, summary]
+      [seasonId, name, status, imageUrl, summary, sportKind, discipline]
     );
     const id = row.rows[0]?.id ?? (await pool.query('SELECT id FROM competitions WHERE name=$1', [name])).rows[0].id;
-    await pool.query('UPDATE competitions SET image_url=$2,summary=$3,status=$4::competition_status WHERE id=$1', [id, imageUrl, summary, status]);
+    await pool.query('UPDATE competitions SET image_url=$2,summary=$3,status=$4::competition_status,sport_kind=$5,discipline=$6 WHERE id=$1', [id, imageUrl, summary, status, sportKind, discipline]);
     competitionIds.push(id);
-    console.log(`competition ${name}`);
+    console.log(`competition ${name} ${sportKind} ${status}`);
   }
 
   const names = [['أمين', 'بوخالفة'], ['ياسمين', 'مرابط'], ['رياض', 'بن عيسى'], ['هدى', 'قاسمي']];
@@ -131,7 +145,8 @@ try {
   const announcements = [
     ['افتتاح الموسم الرياضي المدرسي', 'تعلن الرابطة الولائية بسطيف عن افتتاح الموسم 2025-2026 وفق الرزنامة الوطنية.', '/media/season-open.jpg'],
     ['إعلان منافسات ألعاب القوى', 'التسجيل مفتوح لمؤسسات الولاية في سباقات السرعة والتتابع حتى نهاية الشهر.', '/media/athletics.jpg'],
-    ['نتائج كرة السلة الإناث', 'نُشرت النتائج المعتمدة لنهائيات كرة السلة المدرسية للإناث.', '/media/basketball.jpg']
+    ['نتائج كرة السلة الإناث', 'نُشرت النتائج المعتمدة لنهائيات كرة السلة المدرسية للإناث.', '/media/basketball.jpg'],
+    ['اعتماد الرزنامة الفردية والجماعية', 'اعتُمدت 15 منافسة مدرسية: 9 فردية و6 جماعية، وهي منشورة للتسجيل أو الجريان أو النتائج.', '/media/season-open.jpg']
   ];
   for (const [title, body, imageUrl] of announcements) {
     await pool.query(
