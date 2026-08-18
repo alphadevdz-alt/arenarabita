@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, BarChart3, CheckCircle2, FileCheck2, Landmark, LayoutDashboard, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
 import { RoleAdmin } from './RoleAdmin';
+import { HonorsBoard, PlayerCard, Scoreboard, TeamsBoard } from './PublicShowcase';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL ?? '';
-type View = 'home' | 'seasons' | 'competitions' | 'results' | 'announcements' | 'help' | 'verify' | 'register' | 'admin';
+type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'verify' | 'register' | 'admin';
 
 function App() {
   const [view, setView] = useState<View>('home');
+  const [playerId, setPlayerId] = useState('');
   const [reference, setReference] = useState('');
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
@@ -30,7 +32,9 @@ function App() {
     ['home', 'الرئيسية'],
     ['seasons', 'المواسم'],
     ['competitions', 'المنافسات'],
+    ['teams', 'الفرق'],
     ['results', 'النتائج'],
+    ['honors', 'التتويج'],
     ['announcements', 'الإعلانات'],
     ['verify', 'التحقق'],
     ['register', 'انخراط مؤسسة'],
@@ -59,7 +63,10 @@ function App() {
         {view === 'home' && <Home onVerify={() => setView('verify')} onAdmin={() => setView('admin')} onMore={() => setView('announcements')} />}
         {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
         {view === 'competitions' && <CompetitionsListing />}
-        {view === 'results' && <Listing title="النتائج المنشورة" endpoint="results" icon={<BarChart3 />} />}
+        {view === 'teams' && <TeamsBoard onPlayer={(id) => { setPlayerId(id); setView('player'); }} />}
+        {view === 'player' && playerId && <PlayerCard id={playerId} onBack={() => setView('teams')} />}
+        {view === 'results' && <Scoreboard />}
+        {view === 'honors' && <HonorsBoard />}
         {view === 'announcements' && <Listing title="الإعلانات الرسمية" endpoint="announcements" icon={<FileCheck2 />} />}
         {view === 'help' && <Help />}
         {view === 'verify' && (

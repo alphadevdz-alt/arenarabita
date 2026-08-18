@@ -288,12 +288,49 @@ footer {
 .summary-card b { color: var(--green); font-size: 24px; }
 
 .help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+.arena { max-width: 1180px; }
+.team-grid, .player-grid, .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; }
+.team-card, .player-card, .score-card, .honor-item, .record-item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  text-align: right;
+  box-shadow: var(--shadow);
+}
+.team-card { display: grid; grid-template-columns: 92px 1fr; padding: 0; }
+.team-card img, .score-card > img { width: 100%; height: 110px; object-fit: cover; }
+.team-card > div, .score-body { padding: 12px; }
+.team-card b, .player-card strong { display: block; }
+.team-card small, .player-card small { color: var(--muted); }
+.player-card { position: relative; padding-bottom: 14px; background: linear-gradient(180deg, #12352a, #0f6b4a); color: #fff; }
+.player-card img { width: 100%; height: 220px; object-fit: cover; }
+.player-card strong, .player-card small { display: block; padding: 0 12px; }
+.player-card .num {
+  position: absolute; top: 12px; left: 12px;
+  background: var(--gold); color: #1a1406; font-weight: 800;
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+}
+.hero-card { display: grid; grid-template-columns: 280px 1fr; gap: 24px; background: #10261d; color: #fff; border-radius: 28px; overflow: hidden; }
+.hero-card img { width: 100%; height: 360px; object-fit: cover; }
+.hero-card > div { padding: 28px; }
+.medal { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; background: #eef6f1; color: var(--green); }
+.medal.gold { background: #f3e2a7; color: #6a4d00; }
+.medal.silver { background: #e5e7eb; color: #374151; }
+.medal.bronze { background: #f3d1b8; color: #7a3d12; }
+.medal-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.split { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+.honor-item, .record-item { display: flex; gap: 12px; align-items: center; padding: 12px; margin-bottom: 10px; }
+.honor-item img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+.score-body { display: flex; gap: 12px; align-items: center; }
+.score-body .mini { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.roster { margin-top: 28px; }
 
 @media (max-width: 860px) {
   .topbar { flex-wrap: wrap; }
   .brand { min-width: auto; }
   .topbar nav { order: 3; width: 100%; }
-  .hero, .admin-grid, .pillars, .stats, .help-grid, .workspace-summary { grid-template-columns: 1fr; }
+  .hero, .admin-grid, .pillars, .stats, .help-grid, .workspace-summary, .split, .hero-card { grid-template-columns: 1fr; }
   .hero h1, .verify-page h1, .listing h1 { font-size: 32px; }
   .verify-form, .inline-form { flex-direction: column; }
   footer { flex-direction: column; gap: 8px; text-align: center; }

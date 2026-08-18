@@ -157,6 +157,94 @@ try {
     );
   }
 
+  const squad = [
+    ['فارس', 'نسر الهضاب', 9, 'صانع ألعاب', '/media/players/p01.jpg'],
+    ['لينة', 'شعلة العالية', 7, 'هجوم', '/media/players/p02.jpg'],
+    ['أيوب', 'برق سطيف', 11, 'سرعة', '/media/players/p03.jpg'],
+    ['سندس', 'نجمة بوعنداس', 4, 'صادة', '/media/players/p04.jpg'],
+    ['مهدي', 'أسد قجال', 5, 'محور', '/media/players/p05.jpg'],
+    ['هديل', 'ياقوت الأطلس', 3, 'وزن خفيف', '/media/players/p06.jpg'],
+    ['أنس', 'قطرة الذهب', 1, 'سباح حر', '/media/players/p07.jpg'],
+    ['مريم', 'زهرة الملعب', 10, 'جناح', '/media/players/p08.jpg']
+  ];
+  const playerIds = [];
+  for (const [given, alias, number, position, portrait] of squad) {
+    await pool.query(
+      `INSERT INTO participants(institution_id,given_name,family_name,status,public_alias,portrait_url,jersey_number,position_label)
+       SELECT $1,$2,'مستعار','ACTIVE',$3,$4,$5,$6
+       WHERE NOT EXISTS (SELECT 1 FROM participants WHERE public_alias=$3)`,
+      [institution.rows[0].id, given, alias, portrait, number, position]
+    );
+    const row = await pool.query('SELECT id FROM participants WHERE public_alias=$1', [alias]);
+    playerIds.push(row.rows[0].id);
+  }
+
+  const clubs = [
+    ['نسور الهضاب', 'النسور', 'football', 'نرتقي باللعب النظيف', '#0f6b4a', '/media/football.jpg', [0, 2, 4]],
+    ['شعلات العالية', 'الشعلات', 'basketball', 'همة البنات عنوان الولاية', '#b42318', '/media/basketball.jpg', [1, 7]],
+    ['أمواج سطيف', 'الأمواج', 'swimming', 'كل دورة رقم قياسي جديد', '#1d4e89', '/media/swimming.jpg', [6]],
+    ['صقر الأطلس', 'الصقور', 'handball', 'دفاع صلب وهجوم سريع', '#c4a35a', '/media/handball.jpg', [4, 0]],
+    ['زمرد القلعة', 'الزمرد', 'volleyball', 'فريق واحد إيقاع واحد', '#2f6f4e', '/media/volleyball.jpg', [3, 1]],
+    ['أسود التاتامي', 'الأسود', 'judo', 'الاحترام قبل النقاط', '#3d2b1f', '/media/judo.jpg', [5]]
+  ];
+  for (const [name, alias, discipline, motto, color, image, members] of clubs) {
+    const team = await pool.query(
+      `INSERT INTO teams(institution_id,name,alias,sport_kind,discipline,motto,crest_color,image_url)
+       VALUES ($1,$2,$3,'TEAM',$4,$5,$6,$7)
+       ON CONFLICT(name) DO UPDATE SET motto=EXCLUDED.motto,image_url=EXCLUDED.image_url
+       RETURNING id`,
+      [institution.rows[0].id, name, alias, discipline, motto, color, image]
+    );
+    for (const index of members) {
+      await pool.query('INSERT INTO team_members(team_id,participant_id,role_label) VALUES($1,$2,$3) ON CONFLICT DO NOTHING', [team.rows[0].id, playerIds[index], 'لاعب أساسي']);
+    }
+  }
+
+  const honorRows = [
+    [0, 'GOLD', 'ذهبية كرة القدم الولائية', 'أفضل صانع ألعاب للموسم'],
+    [1, 'GOLD', 'ذهبية كرة السلة إناث', 'هجومية البطولة'],
+    [2, 'SILVER', 'فضية 100 متر', 'رقم شبه قياسي ولائي'],
+    [5, 'GOLD', 'ذهبية الجودو', 'وزن خفيف إناث'],
+    [6, 'BRONZE', 'برونزية السباحة الحرة', '50 متر'],
+    [7, 'MENTION', 'تكريم الروح الرياضية', 'جائزة اللعب النظيف']
+  ];
+  for (const [index, type, title, detail] of honorRows) {
+    await pool.query(
+      `INSERT INTO honors(participant_id,competition_id,honor_type,title,detail,awarded_on)
+       SELECT $1,$2,$3,$4,$5,'2026-05-15'
+       WHERE NOT EXISTS (SELECT 1 FROM honors WHERE title=$4 AND participant_id=$1)`,
+      [playerIds[index], competitionIds[0], type, title, detail]
+    );
+  }
+
+  const records = [
+    ['ألعاب القوى', '100 متر ذكور', '11.42 ث', 'برق سطيف', 'الموسم المدرسي 2025-2026'],
+    ['السباحة', '50 متر حرة', '27.80 ث', 'قطرة الذهب', 'الموسم المدرسي 2025-2026'],
+    ['الجودو', 'أسرع إيبون', '12 ث', 'ياقوت الأطلس', 'الموسم المدرسي 2025-2026'],
+    ['كرة السلة', 'أكثر نقاط في مباراة', '28 نقطة', 'شعلة العالية', 'الموسم المدرسي 2025-2026']
+  ];
+  for (const [discipline, label, value, holder, seasonName] of records) {
+    await pool.query(
+      `INSERT INTO sport_records(discipline,record_label,record_value,holder_alias,season_name)
+       SELECT $1,$2,$3,$4,$5
+       WHERE NOT EXISTS (SELECT 1 FROM sport_records WHERE record_label=$2 AND holder_alias=$4)`,
+      [discipline, label, value, holder, seasonName]
+    );
+  }
+
+  await pool.query(
+    `INSERT INTO results(competition_id,participant_id,result_data,status)
+     SELECT $1,$2,$3::jsonb,'ACTIVE'
+     WHERE NOT EXISTS (SELECT 1 FROM results WHERE participant_id=$2 AND competition_id=$1)`,
+    [competitionIds[9] ?? competitionIds[0], playerIds[0], JSON.stringify({ place: 1, medal: 'ذهب', score: '2-1', note: 'نهائي كرة القدم' })]
+  );
+  await pool.query(
+    `INSERT INTO results(competition_id,participant_id,result_data,status)
+     SELECT $1,$2,$3::jsonb,'ACTIVE'
+     WHERE NOT EXISTS (SELECT 1 FROM results WHERE participant_id=$2 AND competition_id=$1)`,
+    [competitionIds[12] ?? competitionIds[0], playerIds[1], JSON.stringify({ place: 1, medal: 'ذهب', score: '58-51', note: 'نهائي السلة إناث' })]
+  );
+
   await pool.query(
     'INSERT INTO audit_logs(actor_user_id,action,entity_type,result_status,metadata) VALUES($1,$2,$3,$4,$5)',
     [userIds['demo.national'], 'SIMULATION_SEED', 'SYSTEM', 'SUCCESS', JSON.stringify({ wilaya: 19 })]

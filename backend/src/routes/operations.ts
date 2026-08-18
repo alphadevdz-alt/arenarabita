@@ -15,6 +15,44 @@ export async function registerOperationRoutes(app: FastifyInstance) {
     return { data: result.rows };
   });
 
+  app.get('/api/v1/public/teams', async () => {
+    const result = await pool.query("SELECT t.id,t.name,t.alias,t.discipline,t.motto,t.crest_color,t.image_url,count(tm.participant_id)::int AS roster FROM teams t LEFT JOIN team_members tm ON tm.team_id=t.id WHERE t.archived_at IS NULL AND t.status='ACTIVE' GROUP BY t.id ORDER BY t.name");
+    return { data: result.rows };
+  });
+
+  app.get('/api/v1/public/teams/:id', async (request, reply) => {
+    const id = z.string().uuid().safeParse((request.params as { id: string }).id);
+    if (!id.success) return reply.code(400).send({ error: 'validation_error' });
+    const team = await pool.query("SELECT id,name,alias,discipline,motto,crest_color,image_url FROM teams WHERE id=$1 AND archived_at IS NULL", [id.data]);
+    if (!team.rowCount) return reply.code(404).send({ error: 'not_found' });
+    const members = await pool.query("SELECT p.id,p.public_alias,p.portrait_url,p.jersey_number,p.position_label FROM team_members tm JOIN participants p ON p.id=tm.participant_id WHERE tm.team_id=$1 ORDER BY p.jersey_number NULLS LAST", [id.data]);
+    return { data: { ...team.rows[0], members: members.rows } };
+  });
+
+  app.get('/api/v1/public/players/:id', async (request, reply) => {
+    const id = z.string().uuid().safeParse((request.params as { id: string }).id);
+    if (!id.success) return reply.code(400).send({ error: 'validation_error' });
+    const player = await pool.query("SELECT p.id,p.public_alias,p.portrait_url,p.jersey_number,p.position_label,t.name AS team_name,t.alias AS team_alias,t.id AS team_id FROM participants p LEFT JOIN team_members tm ON tm.participant_id=p.id LEFT JOIN teams t ON t.id=tm.team_id WHERE p.id=$1 AND p.archived_at IS NULL", [id.data]);
+    if (!player.rowCount) return reply.code(404).send({ error: 'not_found' });
+    const honors = await pool.query('SELECT honor_type,title,detail,awarded_on FROM honors WHERE participant_id=$1 ORDER BY awarded_on DESC NULLS LAST', [id.data]);
+    return { data: { ...player.rows[0], honors: honors.rows } };
+  });
+
+  app.get('/api/v1/public/honors', async () => {
+    const result = await pool.query("SELECT h.id,h.honor_type,h.title,h.detail,h.awarded_on,p.public_alias,p.portrait_url,c.name AS competition_name FROM honors h LEFT JOIN participants p ON p.id=h.participant_id LEFT JOIN competitions c ON c.id=h.competition_id ORDER BY h.awarded_on DESC NULLS LAST LIMIT 40");
+    return { data: result.rows };
+  });
+
+  app.get('/api/v1/public/records', async () => {
+    const result = await pool.query('SELECT id,discipline,record_label,record_value,holder_alias,season_name FROM sport_records ORDER BY discipline,record_label');
+    return { data: result.rows };
+  });
+
+  app.get('/api/v1/public/scoreboard', async () => {
+    const result = await pool.query("SELECT r.id,c.name AS competition_name,c.image_url,p.public_alias,p.portrait_url,r.result_data,r.created_at FROM results r JOIN competitions c ON c.id=r.competition_id LEFT JOIN participants p ON p.id=r.participant_id WHERE r.status='ACTIVE' AND r.archived_at IS NULL AND c.status IN ('RESULTS','CLOSED','ACTIVE') ORDER BY r.created_at DESC LIMIT 30");
+    return { data: result.rows };
+  });
+
   app.get('/api/v1/public/seasons/:id', async (request, reply) => {
     const id = z.string().uuid().safeParse((request.params as { id: string }).id);
     if (!id.success) return reply.code(400).send({ error: 'validation_error' });
