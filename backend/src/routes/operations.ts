@@ -11,7 +11,7 @@ async function audit(actorUserId: string, action: string, entityType: string, en
 
 export async function registerOperationRoutes(app: FastifyInstance) {
   app.get('/api/v1/public/announcements', async () => {
-    const result = await pool.query("SELECT id,title,body,published_at FROM announcements WHERE status='ACTIVE' AND archived_at IS NULL ORDER BY published_at DESC NULLS LAST, created_at DESC LIMIT 50");
+    const result = await pool.query("SELECT id,title,body,image_url,published_at FROM announcements WHERE status='ACTIVE' AND archived_at IS NULL ORDER BY published_at DESC NULLS LAST, created_at DESC LIMIT 50");
     return { data: result.rows };
   });
 

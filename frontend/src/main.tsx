@@ -4,7 +4,7 @@ import { Activity, BarChart3, CheckCircle2, FileCheck2, Landmark, LayoutDashboar
 import { RoleAdmin } from './RoleAdmin';
 import './styles.css';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const API = import.meta.env.VITE_API_URL ?? '';
 type View = 'home' | 'seasons' | 'competitions' | 'results' | 'announcements' | 'help' | 'verify' | 'register' | 'admin';
 
 function App() {
@@ -146,7 +146,7 @@ function Home({ onVerify, onAdmin, onMore }: { onVerify: () => void; onAdmin: ()
           {news.length === 0 && <div className="empty-state">لا توجد إعلانات منشورة حالياً.</div>}
           {news.map((row) => (
             <article className="item-card" key={row.id}>
-              <div className="icon-box"><FileCheck2 /></div>
+              {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box"><FileCheck2 /></div>}
               <div>
                 <h3>{row.title}</h3>
                 <p>{row.body}</p>
@@ -181,10 +181,10 @@ function Listing({ title, endpoint, icon }: { title: string; endpoint: string; i
         <div className="cards">
           {rows.map((row, i) => (
             <article className="item-card" key={row.id ?? i}>
-              <div className="icon-box">{icon}</div>
+              {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box">{icon}</div>}
               <div>
                 <h3>{row.title ?? row.name ?? row.competition_name ?? 'نتيجة منشورة'}</h3>
-                <p>{row.body ?? row.season_name ?? 'معلومات معتمدة من الإدارة المختصة'}</p>
+                <p>{row.body ?? row.summary ?? row.season_name ?? 'معلومات معتمدة من الإدارة المختصة'}</p>
               </div>
               <span className="badge">{row.status ?? 'منشور'}</span>
             </article>

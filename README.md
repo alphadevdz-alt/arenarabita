@@ -59,10 +59,16 @@ $env:VITE_API_URL = "http://localhost:3000"
 npm run dev
 ```
 
-Demo accounts:
+Demo accounts (local simulation only):
 
-- `demo.admin` / `NssmsDemoAdmin-2026!`
-- `demo.national` / `NssmsDemoNational-2026!`
+- `demo.admin` / `NssmsDemoAdmin-2026!` — إداري نظام
+- `demo.national` / `NssmsDemoNational-2026!` — إداري وطني
+- `demo.association.admin` / `NssmsAssocAdmin-2026!` — رابطة سطيف
+- `demo.association.rep` / `NssmsAssocRep-2026!` — ممثل الرابطة
+- `demo.daira.officer` / `NssmsDairaOff-2026!` — دائرة سطيف
+- `demo.institution` / `NssmsInstitution-2026!` — ثانوية الشهيد
+
+Simulation seed: `cd backend && npm run seed:simulation` after migrations. Embedded PostgreSQL: `npm run pg:embedded`.
 
 Validation commands:
 

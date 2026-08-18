@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FileCheck2, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const API = import.meta.env.VITE_API_URL ?? '';
 
 const labels: Record<string, string> = {
   SYSTEM_ADMINISTRATOR: 'إداري عام',

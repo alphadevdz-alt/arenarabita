@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: nssms
+      POSTGRES_USER: nssms
+      POSTGRES_PASSWORD: nssms
+    ports:
+      - "5432:5432"
+    volumes:
+      - nssms_pg:/var/lib/postgresql/data
+volumes:
+  nssms_pg:

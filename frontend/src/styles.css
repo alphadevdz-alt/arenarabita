@@ -182,6 +182,13 @@ nav { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
   padding: 10px;
   display: flex;
 }
+.thumb {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 14px;
+  flex: 0 0 auto;
+}
 .stat b { display: block; font-size: 26px; }
 .stat small { color: var(--muted); font-size: 12px; }
 
