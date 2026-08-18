@@ -119,15 +119,16 @@ export async function registerOperationRoutes(app: FastifyInstance) {
   app.post('/api/v1/admin/entries', async (request, reply) => {
     const req = request as AuthenticatedRequest;
     if (!requireAuth(req, reply)) return;
-    if (!hasRole(req, ['SYSTEM_ADMINISTRATOR', 'NATIONAL_ADMINISTRATOR', 'ASSOCIATION_ADMINISTRATOR', 'MEMBER_INSTITUTION_USER'])) return reply.code(403).send({ error: 'forbidden' });
+    if (!hasRole(req, ['MEMBER_INSTITUTION_USER']) || !req.auth!.institutionId) return reply.code(403).send({ error: 'institution_enrollment_only' });
     const parsed = z.object({ competitionId: z.string().uuid(), participantId: z.string().uuid() }).safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: 'validation_error' });
-    if (!(await canAccessResource(req, 'participant', parsed.data.participantId))) return reply.code(403).send({ error: 'forbidden' });
+    const owned = await pool.query('SELECT id FROM participants WHERE id=$1 AND institution_id=$2 AND archived_at IS NULL', [parsed.data.participantId, req.auth!.institutionId]);
+    if (!owned.rowCount) return reply.code(403).send({ error: 'participant_not_in_institution' });
     const competition = await pool.query("SELECT id,status FROM competitions WHERE id=$1 AND archived_at IS NULL", [parsed.data.competitionId]);
     if (!competition.rowCount) return reply.code(404).send({ error: 'competition_not_found' });
     if (!['REGISTRATION', 'ACTIVE'].includes(competition.rows[0].status)) return reply.code(409).send({ error: 'competition_not_open_for_entry' });
     try {
-      const result = await pool.query('INSERT INTO competition_entries(competition_id,participant_id) VALUES($1,$2) RETURNING *', [parsed.data.competitionId, parsed.data.participantId]);
+      const result = await pool.query("INSERT INTO competition_entries(competition_id,participant_id,confirmation_status) VALUES($1,$2,'PENDING') RETURNING *", [parsed.data.competitionId, parsed.data.participantId]);
       await audit(req.auth!.userId, 'CREATE', 'COMPETITION_ENTRY', result.rows[0].id);
       return reply.code(201).send({ data: result.rows[0] });
     } catch (error) {

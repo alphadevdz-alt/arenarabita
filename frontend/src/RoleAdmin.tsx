@@ -130,7 +130,8 @@ function AdminWorkspace({ token, user }: { token: string; user: any }) {
   const role = primaryRole(roles);
   const national = roles.some((r) => ['SYSTEM_ADMINISTRATOR', 'NATIONAL_ADMINISTRATOR'].includes(r));
   const association = roles.includes('ASSOCIATION_ADMINISTRATOR');
-  const canWritePeople = national || association || roles.includes('MEMBER_INSTITUTION_USER');
+  const institutionUser = roles.includes('MEMBER_INSTITUTION_USER');
+  const canEnroll = institutionUser && Boolean(user.institutionId);
   const tabs = useMemo(() => menusFor(role).map((item) => ({ id: (item.id === 'home' ? 'dashboard' : item.id) as Tab, label: item.label })), [role]);
   const [tab, setTab] = useState<Tab>('dashboard');
 
@@ -155,11 +156,11 @@ function AdminWorkspace({ token, user }: { token: string; user: any }) {
         {tab === 'approvals' && <Approvals token={token} />}
         {tab === 'organizations' && <Organizations token={token} />}
         {tab === 'institutions' && <Collection token={token} path="/api/v1/admin/institutions" title="المؤسسات التعليمية" fields={['name', 'code', 'organization_name', 'sport_discipline', 'sport_category', 'status']} />}
-        {tab === 'participants' && <Participants token={token} canCreate={canWritePeople} />}
+        {tab === 'participants' && <Participants token={token} canCreate={canEnroll} institutionId={user.institutionId} />}
         {tab === 'seasons' && <LifecycleList token={token} path="/api/v1/admin/seasons" title="المواسم" fields={['name', 'status', 'start_date', 'end_date']} next={seasonNext} create={national ? { name: '', startDate: '', endDate: '' } : undefined} canTransition={national} />}
         {tab === 'competitions' && <Competitions token={token} national={national} />}
-        {tab === 'entries' && <Entries token={token} canCreate={canWritePeople} />}
-        {tab === 'licenses' && <Licenses token={token} canIssue={national || association} canApply={canWritePeople} />}
+        {tab === 'entries' && <Entries token={token} canCreate={canEnroll} canConfirm={association || roles.includes('SYSTEM_ADMINISTRATOR')} />}
+        {tab === 'licenses' && <Licenses token={token} canIssue={national || association} canApply={canEnroll} />}
         {tab === 'results' && <Results token={token} />}
         {tab === 'announcements' && <Announcements token={token} />}
         {tab === 'users' && <Users token={token} />}
@@ -315,7 +316,7 @@ function Competitions({ token, national }: { token: string; national: boolean })
   );
 }
 
-function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
+function Entries({ token, canCreate, canConfirm }: { token: string; canCreate: boolean; canConfirm?: boolean }) {
   const [rows, setRows] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [competitions, setCompetitions] = useState<any[]>([]);
@@ -323,7 +324,15 @@ function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
   function load() {
     api('/api/v1/admin/entries', token).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
     api('/api/v1/admin/participants', token).then((d) => setParticipants(d.data ?? [])).catch(() => setParticipants([]));
-    api('/api/v1/admin/competitions', token).then((d) => setCompetitions((d.data ?? []).filter((c: any) => ['REGISTRATION', 'ACTIVE'].includes(c.status)))).catch(() => setCompetitions([]));
+    api('/api/v1/admin/competitions', token)
+      .then((d) => {
+        const all = d.data ?? [];
+        const open = all.filter((c: any) => ['REGISTRATION', 'ACTIVE'].includes(c.status));
+        setCompetitions(open.length ? open : all);
+      })
+      .catch(() => {
+        fetch(`${API}/api/v1/public/competitions`).then((r) => r.json()).then((d) => setCompetitions(d.data ?? [])).catch(() => setCompetitions([]));
+      });
   }
   useEffect(load, [token]);
   async function submit(e: React.FormEvent) {
@@ -333,7 +342,8 @@ function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
   }
   return (
     <div>
-      <h3>تسجيل المشاركين في المنافسات</h3>
+      <h3>تسجيل التلاميذ في المنافسات</h3>
+      <p className="lede">التسجيل من حساب المؤسسة فقط. الرابطة تؤكد الملف بعد ذلك.</p>
       {canCreate && (
         <form className="inline-form" onSubmit={submit}>
           <select value={form.competitionId} onChange={(e) => setForm({ ...form, competitionId: e.target.value })} required>
@@ -352,7 +362,8 @@ function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
           <div className="data-row" key={row.id}>
             <span>{row.given_name} {row.family_name}</span>
             <span>{row.competition_name}</span>
-            <small>{row.status}</small>
+            <small>{row.confirmation_status === 'CONFIRMED' ? 'مؤكد من الرابطة' : row.confirmation_status === 'REJECTED' ? 'مرفوض' : 'بانتظار تأكيد الرابطة'}</small>
+            {canConfirm && row.confirmation_status !== 'CONFIRMED' && <button className="primary" onClick={() => api(`/api/v1/admin/entries/${row.id}/confirm`, token, { method: 'POST', body: JSON.stringify({ decision: 'CONFIRMED' }) }).then(load)}>تأكيد</button>}
           </div>
         ))}
         {!rows.length && <div className="empty">لا توجد تسجيلات.</div>}
@@ -361,10 +372,10 @@ function Entries({ token, canCreate }: { token: string; canCreate: boolean }) {
   );
 }
 
-function Participants({ token, canCreate }: { token: string; canCreate: boolean }) {
+function Participants({ token, canCreate, institutionId }: { token: string; canCreate: boolean; institutionId?: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
-  const [form, setForm] = useState({ institutionId: '', givenName: '', familyName: '', dateOfBirth: '' });
+  const [form, setForm] = useState({ institutionId: institutionId ?? '', givenName: '', familyName: '', dateOfBirth: '' });
   useEffect(() => {
     api('/api/v1/admin/participants', token).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
     api('/api/v1/admin/institutions', token).then((d) => setInstitutions((d.data ?? []).filter((item: any) => item.status !== 'ARCHIVED'))).catch(() => setInstitutions([]));
