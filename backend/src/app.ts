@@ -114,14 +114,32 @@ export function buildApp() {
   app.post('/api/v1/auth/change-password', async (request, reply) => { const session=readSession(request.headers.authorization?.replace(/^Bearer\s+/i,'')); if(!session)return reply.code(401).send({error:'unauthorized'}); const parsed=z.object({currentPassword:z.string().min(12),newPassword:z.string().min(12).max(200)}).safeParse(request.body); if(!parsed.success)return reply.code(400).send({error:'validation_error'}); const {pool}=await import('./infrastructure/db.js'); const user=await pool.query('SELECT password_hash FROM users WHERE id=$1 AND status=\'ACTIVE\'',[session.userId]); if(!user.rowCount||!verifyPassword(parsed.data.currentPassword,user.rows[0].password_hash))return reply.code(401).send({error:'invalid_current_password'}); await pool.query('UPDATE users SET password_hash=$1,updated_at=now() WHERE id=$2',[encodePassword(parsed.data.newPassword),session.userId]); await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status) VALUES($1,$2,$3,$4,$5)',[session.userId,'CHANGE_PASSWORD','AUTHENTICATION',session.userId,'SUCCESS']); return {success:true}; });
   void registerAdminRoutes(app);
   void registerOperationRoutes(app);
-  app.get('/api/v1/public/licenses/verify/:reference', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+  app.get('/api/v1/public/licenses/verify/:reference', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (_request, reply) => {
     reply.header('cache-control', 'no-store');
+    return reply.code(401).send({ error: 'staff_only_verification' });
+  });
+  app.get('/api/v1/admin/verify/:reference', { config: { rateLimit: { max: 40, timeWindow: '1 minute' } } }, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    const session = readSession(request.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!session) return reply.code(401).send({ error: 'unauthorized' });
     const parsed = z.object({ reference: z.string().min(12).max(200) }).safeParse(request.params);
     if (!parsed.success) return reply.code(400).send({ error: 'invalid_verification_reference' });
-    let verification;
-    try { verification = await verifyLicense(parsed.data.reference); } catch (error) { request.log.error(error); return reply.code(503).send({ error: 'verification_unavailable' }); }
-    if (!verification) return reply.code(404).send({ error: 'license_not_found' });
-    return { verified: true, ...verification };
+    const token = parsed.data.reference.trim().toUpperCase();
+    try {
+      const { createHash } = await import('node:crypto');
+      const { pool } = await import('./infrastructure/db.js');
+      const hash = createHash('sha256').update(token).digest('hex');
+      const enrollment = await pool.query("SELECT e.role_kind,e.label,e.status,i.name AS institution_name FROM enrollment_codes e JOIN educational_institutions i ON i.id=e.institution_id WHERE e.code_hash=$1 LIMIT 1", [hash]);
+      if (enrollment.rowCount) {
+        return { verified: true, role: enrollment.rows[0].role_kind, licenseKind: enrollment.rows[0].role_kind, label: enrollment.rows[0].label, status: enrollment.rows[0].status, institutionName: enrollment.rows[0].institution_name };
+      }
+      const verification = await verifyLicense(parsed.data.reference);
+      if (!verification) return reply.code(404).send({ error: 'license_not_found' });
+      return { verified: true, ...verification };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(503).send({ error: 'verification_unavailable' });
+    }
   });
   const publicPage = (request: any) => { const page = Math.max(1, Math.min(10000, Number(request.query?.page ?? 1))); const pageSize = Math.max(1, Math.min(100, Number(request.query?.pageSize ?? 25))); return { page, pageSize, offset:(page-1)*pageSize }; };
   app.get('/api/v1/public/seasons', async (request) => { const {page,pageSize,offset}=publicPage(request); const query=z.object({status:z.enum(['ACTIVE','CLOSED']).optional()}).parse(request.query); const values:any[]=[]; const where=["archived_at IS NULL"]; if(query.status){values.push(query.status);where.push(`status=$${values.length}`)} else where.push("status IN ('ACTIVE','CLOSED')"); values.push(pageSize,offset); const result = await (await import('./infrastructure/db.js')).pool.query(`SELECT id,name,start_date,end_date,status FROM seasons WHERE ${where.join(' AND ')} ORDER BY start_date DESC LIMIT $${values.length-1} OFFSET $${values.length}` ,values); return { data: result.rows, page, pageSize }; });

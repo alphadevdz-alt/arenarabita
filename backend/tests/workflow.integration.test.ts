@@ -39,7 +39,9 @@ suite('NSSMS core workflow', () => {
     expect(license.statusCode).toBe(201); const reference=license.json().verificationReference;
     const licenseId=license.json().data.id;
     for (const to of ['EXPIRED','ARCHIVED']) expect((await app!.inject({method:'POST',url:`/api/v1/admin/licenses/${licenseId}/transition`,headers:auth,payload:{to}})).statusCode).toBe(200);
-    const verification = await app!.inject({method:'GET',url:`/api/v1/public/licenses/verify/${reference}`});
+    const denied = await app!.inject({method:'GET',url:`/api/v1/public/licenses/verify/${reference}`});
+    expect(denied.statusCode).toBe(401);
+    const verification = await app!.inject({method:'GET',url:`/api/v1/admin/verify/${reference}`,headers:auth});
     expect(verification.statusCode).toBe(200); expect(verification.json().verified).toBe(true);
     const audit = await app!.inject({method:'GET',url:'/api/v1/admin/audit?action=ISSUE&entityType=LICENSE',headers:auth});
     expect(audit.statusCode).toBe(200); expect(audit.json().data.length).toBeGreaterThan(0);

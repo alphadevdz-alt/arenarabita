@@ -36,7 +36,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const req = request as AuthenticatedRequest; const path = request.url.split('?')[0];
     if (!path.startsWith('/api/v1/admin')) return;
     if (!requireAuth(req, reply)) return;
-    if (path.endsWith('/me/permissions')) return;
+    if (path.endsWith('/me/permissions') || path.includes('/admin/verify/')) return;
     const nationalOnly = /\/users(?:\/|$)|\/roles(?:\/|$)|\/permissions(?:\/|$)|\/audit(?:\/|$)|\/reports(?:\/|$)|\/licenses\/sync-expiry|\/announcements(?:\/|$)/.test(path);
     if (nationalOnly) { if (!hasRole(req, ['SYSTEM_ADMINISTRATOR', 'NATIONAL_ADMINISTRATOR'])) { await recordAccessDenied(req, 'NATIONAL_SCOPE_DENIED'); void reply.code(403).send({ error: 'forbidden' }); } return; }
     if (/\/seasons(?:\/|$)|\/competitions(?:\/|$)/.test(path)) {

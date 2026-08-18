@@ -17,7 +17,7 @@ const seasonNext: Record<string, string> = { DRAFT: 'UNDER_REVIEW', UNDER_REVIEW
 const competitionNext: Record<string, string> = { DRAFT: 'REVIEW', REVIEW: 'APPROVED', APPROVED: 'REGISTRATION', REGISTRATION: 'ACTIVE', ACTIVE: 'RESULTS', RESULTS: 'CLOSED', CLOSED: 'ARCHIVED' };
 const licenseNext: Record<string, string> = { APPLICATION: 'VALIDATION', VALIDATION: 'APPROVAL', APPROVAL: 'ISSUED', ISSUED: 'ACTIVE', ACTIVE: 'EXPIRED' };
 
-type Tab = 'dashboard' | 'institutions' | 'organizations' | 'participants' | 'seasons' | 'competitions' | 'entries' | 'licenses' | 'results' | 'announcements' | 'users' | 'audit' | 'reports' | 'approvals' | 'account';
+type Tab = 'dashboard' | 'institutions' | 'organizations' | 'participants' | 'seasons' | 'competitions' | 'entries' | 'licenses' | 'results' | 'announcements' | 'users' | 'audit' | 'reports' | 'approvals' | 'account' | 'verify';
 
 async function api(path: string, token: string, init?: RequestInit) {
   const response = await fetch(`${API}${path}`, {
@@ -113,48 +113,47 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
   );
 }
 
-function AdminWorkspace({ token, roles }: { token: string; roles: string[] }) {
+function AdminWorkspace({ token, user }: { token: string; user: any }) {
+  const roles: string[] = user.roles ?? [];
+  const role = primaryRole(roles);
   const national = roles.some((r) => ['SYSTEM_ADMINISTRATOR', 'NATIONAL_ADMINISTRATOR'].includes(r));
-  const system = roles.includes('SYSTEM_ADMINISTRATOR');
   const association = roles.includes('ASSOCIATION_ADMINISTRATOR');
   const canWritePeople = national || association || roles.includes('MEMBER_INSTITUTION_USER');
-  const tabs = useMemo(() => {
-    const items: { id: Tab; label: string }[] = [{ id: 'dashboard', label: 'الملخص' }];
-    if (association) items.push({ id: 'approvals', label: 'طلبات الانخراط' });
-    if (national) items.push({ id: 'organizations', label: 'الرابطات' });
-    items.push({ id: 'institutions', label: 'المؤسسات' }, { id: 'participants', label: 'المشاركون' });
-    items.push({ id: 'seasons', label: 'المواسم' }, { id: 'competitions', label: 'المنافسات' }, { id: 'entries', label: 'التسجيلات' });
-    items.push({ id: 'licenses', label: 'التراخيص' });
-    if (national) items.push({ id: 'results', label: 'النتائج' }, { id: 'announcements', label: 'الإعلانات' });
-    if (system) items.push({ id: 'users', label: 'المستخدمون' });
-    if (national) items.push({ id: 'audit', label: 'التدقيق' }, { id: 'reports', label: 'التقارير' });
-    items.push({ id: 'account', label: 'الحساب' });
-    return items;
-  }, [national, association, system]);
+  const tabs = useMemo(() => menusFor(role).map((item) => ({ id: (item.id === 'home' ? 'dashboard' : item.id) as Tab, label: item.label })), [role]);
   const [tab, setTab] = useState<Tab>('dashboard');
 
   return (
-    <div className="workspace">
-      <div className="tabs">
+    <div className="cockpit">
+      <aside className="cockpit-side">
+        <div className="side-brand">
+          <span className="brand-mark">★</span>
+          <div>
+            <b>{ROLE_META[role]?.title ?? 'تسيير'}</b>
+            <small>{ROLE_META[role]?.rank}</small>
+          </div>
+        </div>
         {tabs.map((item) => (
-          <button key={item.id} className={tab === item.id ? 'selected' : ''} onClick={() => setTab(item.id)}>{item.label}</button>
+          <button key={item.id} className={tab === item.id ? 'on' : ''} onClick={() => setTab(item.id)}>{item.label}</button>
         ))}
+      </aside>
+      <div className="workspace">
+        {tab === 'dashboard' && <RoleHome token={token} role={role} user={user} />}
+        {tab === 'verify' && <StaffVerify token={token} />}
+        {tab === 'approvals' && <Approvals token={token} />}
+        {tab === 'organizations' && <Organizations token={token} />}
+        {tab === 'institutions' && <Collection token={token} path="/api/v1/admin/institutions" title="المؤسسات التعليمية" fields={['name', 'code', 'organization_name', 'sport_discipline', 'sport_category', 'status']} />}
+        {tab === 'participants' && <Participants token={token} canCreate={canWritePeople} />}
+        {tab === 'seasons' && <LifecycleList token={token} path="/api/v1/admin/seasons" title="المواسم" fields={['name', 'status', 'start_date', 'end_date']} next={seasonNext} create={national ? { name: '', startDate: '', endDate: '' } : undefined} canTransition={national} />}
+        {tab === 'competitions' && <Competitions token={token} national={national} />}
+        {tab === 'entries' && <Entries token={token} canCreate={canWritePeople} />}
+        {tab === 'licenses' && <Licenses token={token} canIssue={national || association} canApply={canWritePeople} />}
+        {tab === 'results' && <Results token={token} />}
+        {tab === 'announcements' && <Announcements token={token} />}
+        {tab === 'users' && <Users token={token} />}
+        {tab === 'audit' && <Collection token={token} path="/api/v1/admin/audit" title="سجل التدقيق" fields={['occurred_at', 'action', 'entity_type', 'result_status']} />}
+        {tab === 'reports' && <Reports token={token} />}
+        {tab === 'account' && <Account token={token} />}
       </div>
-      {tab === 'dashboard' && <ScopedDashboard token={token} roles={roles} />}
-      {tab === 'approvals' && <Approvals token={token} />}
-      {tab === 'organizations' && <Organizations token={token} />}
-      {tab === 'institutions' && <Collection token={token} path="/api/v1/admin/institutions" title="المؤسسات التعليمية" fields={['name', 'code', 'organization_name', 'sport_discipline', 'sport_category', 'status']} />}
-      {tab === 'participants' && <Participants token={token} canCreate={canWritePeople} />}
-      {tab === 'seasons' && <LifecycleList token={token} path="/api/v1/admin/seasons" title="المواسم" fields={['name', 'status', 'start_date', 'end_date']} next={seasonNext} create={national ? { name: '', startDate: '', endDate: '' } : undefined} canTransition={national} />}
-      {tab === 'competitions' && <Competitions token={token} national={national} />}
-      {tab === 'entries' && <Entries token={token} canCreate={canWritePeople} />}
-      {tab === 'licenses' && <Licenses token={token} canIssue={national || association} canApply={canWritePeople} />}
-      {tab === 'results' && <Results token={token} />}
-      {tab === 'announcements' && <Announcements token={token} />}
-      {tab === 'users' && <Users token={token} />}
-      {tab === 'audit' && <Collection token={token} path="/api/v1/admin/audit" title="سجل التدقيق" fields={['occurred_at', 'action', 'entity_type', 'result_status']} />}
-      {tab === 'reports' && <Reports token={token} />}
-      {tab === 'account' && <Account token={token} />}
     </div>
   );
 }
@@ -625,6 +624,54 @@ function Approvals({ token }: { token: string }) {
         {!rows.length && <div className="empty">لا توجد طلبات معلّقة.</div>}
       </div>
     </div>
+  );
+}
+
+function StaffVerify({ token }: { token: string }) {
+  const [reference, setReference] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState('');
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setResult(null);
+    try {
+      const data = await api(`/api/v1/admin/verify/${encodeURIComponent(reference.trim().toUpperCase())}`, token);
+      setResult(data);
+    } catch {
+      setError('لم يتم العثور على رخصة مطابقة أو الرمز غير صالح');
+    }
+  }
+  return (
+    <section className="verify-page">
+      <div className="eyebrow">صلاحية العاملين فقط</div>
+      <h3>تحقق من رخصة رياضية</h3>
+      <p>هذه الخدمة غير متاحة للمشاهدين. الاسم واللقب والفئة والرياضة تظهر بعد الدخول.</p>
+      <form className="verify-form" onSubmit={submit}>
+        <input value={reference} onChange={(e) => setReference(e.target.value)} minLength={12} required placeholder="مرجع الرخصة أو رمز انخراط" />
+        <button className="primary">تحقق</button>
+      </form>
+      {error && <div className="alert error">{error}</div>}
+      {result && (
+        <article className="license-card">
+          <header>
+            <div>
+              <small>بطاقة تحقق داخلية · NSSMS</small>
+              <strong>{result.givenName || result.familyName ? `${result.givenName ?? ''} ${result.familyName ?? ''}`.trim() : result.institutionName ?? 'تم التحقق'}</strong>
+            </div>
+            <span className="badge">{result.status}</span>
+          </header>
+          <dl>
+            {result.givenName && <div><dt>الاسم</dt><dd>{result.givenName}</dd></div>}
+            {result.familyName && <div><dt>اللقب</dt><dd>{result.familyName}</dd></div>}
+            <div><dt>نوع الترخيص</dt><dd>{{ STUDENT: 'تلميذ', COACH: 'مدرب', OFFICIAL: 'إطار رسمي' }[result.licenseKind ?? result.role] ?? result.licenseKind ?? result.role ?? 'رخصة'}</dd></div>
+            <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
+            <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
+            {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
+          </dl>
+        </article>
+      )}
+    </section>
   );
 }
 

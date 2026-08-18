@@ -1,43 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, CheckCircle2, FileCheck2, Landmark, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
+import { Activity, FileCheck2, Trophy, Users } from 'lucide-react';
 import { HonorsBoard, PlayerCard, Scoreboard, TeamsBoard } from './PublicShowcase';
 import { HomeArena } from './HomeArena';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL ?? '';
-type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'verify' | 'register';
+type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'register';
 
 function App() {
   const [view, setView] = useState<View>('home');
   const [playerId, setPlayerId] = useState('');
-  const [reference, setReference] = useState('');
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState('');
-
-  async function verify(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setResult(null);
-    const token = reference.trim().toUpperCase();
-    try {
-      const enrollment = await fetch(`${API}/api/v1/public/enrollment/verify/${encodeURIComponent(token)}`);
-      if (enrollment.ok) {
-        setResult(await enrollment.json());
-        return;
-      }
-      const license = await fetch(`${API}/api/v1/public/licenses/verify/${encodeURIComponent(token)}`);
-      if (!license.ok) {
-        throw new Error(license.status === 503 || enrollment.status === 503
-          ? 'خدمة التحقق غير متاحة حالياً. تأكد أن قاعدة البيانات تعمل.'
-          : 'لم يتم العثور على ترخيص أو رمز انخراط مطابق');
-      }
-      setResult(await license.json());
-    } catch (x) {
-      setError(x instanceof Error ? x.message : 'تعذر الاتصال بالخادم');
-    }
-  }
-
   const nav = [
     ['home', 'الرئيسية'],
     ['seasons', 'المواسم'],
@@ -46,7 +19,6 @@ function App() {
     ['results', 'النتائج'],
     ['honors', 'التتويج'],
     ['announcements', 'الإعلانات'],
-    ['verify', 'التحقق'],
     ['register', 'انخراط مؤسسة'],
     ['help', 'مساعدة']
   ] as const;
@@ -69,7 +41,7 @@ function App() {
         </nav>
       </header>
       <main>
-        {view === 'home' && <HomeArena onVerify={() => setView('verify')} onMore={() => setView('announcements')} onResults={() => setView('results')} onCompetitions={() => setView('competitions')} />}
+        {view === 'home' && <HomeArena onMore={() => setView('announcements')} onResults={() => setView('results')} onCompetitions={() => setView('competitions')} />}
         {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
         {view === 'competitions' && <CompetitionsListing />}
         {view === 'teams' && <TeamsBoard onPlayer={(id) => { setPlayerId(id); setView('player'); }} />}
@@ -78,49 +50,6 @@ function App() {
         {view === 'honors' && <HonorsBoard />}
         {view === 'announcements' && <Listing title="الإعلانات الرسمية" endpoint="announcements" icon={<FileCheck2 />} />}
         {view === 'help' && <Help />}
-        {view === 'verify' && (
-          <section className="verify-page">
-            <div className="eyebrow"><QrCode size={18} /> خدمة عمومية آمنة</div>
-            <h1>تحقق من الترخيص الرياضي</h1>
-            <p>أدخل مرجع الإجازة أو رمز انخراط المدرب/التلميذ. النظام يعرض الحالة المعتمدة فقط دون المعرّفات الداخلية.</p>
-            <p className="lede">تجربة محلية: <code>NSSMS-COACH-5D56C0935D8249B5</code> أو <code>NSSMS-STUD-AAD93430F8E1A1F1</code> أو <code>NSSMS-LIC-SETIF-FARHAT-ABBAS-2026</code></p>
-            <form onSubmit={verify} className="verify-form">
-              <input value={reference} onChange={(e) => setReference(e.target.value)} minLength={12} required placeholder="NSSMS-COACH-… أو NSSMS-STUD-… أو مرجع الترخيص" />
-              <button className="primary"><Search size={18} /> تحقق الآن</button>
-            </form>
-            {error && <div className="alert error">{error}</div>}
-            {result && (
-              <article className="license-card">
-                <header>
-                  <CheckCircle2 size={28} />
-                  <div>
-                    <small>بطاقة تحقق معتمدة · NSSMS</small>
-                    <strong>
-                      {result.givenName || result.familyName
-                        ? `${result.givenName ?? ''} ${result.familyName ?? ''}`.trim()
-                        : result.role === 'COACH' ? 'انخراط مدرب' : result.role === 'STUDENT' ? 'انخراط تلميذ' : 'ترخيص رياضي معتمد'}
-                    </strong>
-                  </div>
-                  <span className="badge">{result.status}</span>
-                </header>
-                <dl>
-                  {result.givenName && <div><dt>الاسم</dt><dd>{result.givenName}</dd></div>}
-                  {result.familyName && <div><dt>اللقب</dt><dd>{result.familyName}</dd></div>}
-                  <div><dt>نوع الترخيص</dt><dd>{
-                    ({ STUDENT: 'تلميذ / Student', COACH: 'مدرب / Coach', OFFICIAL: 'إطار رسمي', STUD: 'تلميذ' } as Record<string, string>)[result.licenseKind ?? result.role] ?? result.licenseKind ?? result.role ?? 'ترخيص رياضي'
-                  }</dd></div>
-                  <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
-                  <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
-                  {result.sportKind && <div><dt>طبيعة النشاط</dt><dd>{result.sportKind === 'TEAM' ? 'جماعي' : result.sportKind === 'INDIVIDUAL' ? 'فردي' : result.sportKind}</dd></div>}
-                  {result.genderCategory && <div><dt>الصنف</dt><dd>{result.genderCategory === 'MALE' ? 'ذكور' : result.genderCategory === 'FEMALE' ? 'إناث' : 'مختلط'}</dd></div>}
-                  {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
-                  {result.issuedAt && <div><dt>الإصدار</dt><dd>{new Date(result.issuedAt).toLocaleDateString('ar-DZ')}</dd></div>}
-                  {result.expiresAt && <div><dt>الانتهاء</dt><dd>{new Date(result.expiresAt).toLocaleDateString('ar-DZ')}</dd></div>}
-                </dl>
-              </article>
-            )}
-          </section>
-        )}
         {view === 'register' && <InstitutionRegister />}
       </main>
       <footer>
@@ -132,7 +61,7 @@ function App() {
           </div>
           <div>
             <b>مرجع</b>
-            <small>حوكمة · أثر غير قابل للحذف · تحقق عمومي برمز</small>
+            <small>حوكمة · أثر غير قابل للحذف · تحقق رخصة للعاملين</small>
           </div>
           <div>
             <b>Staff</b>
@@ -218,7 +147,7 @@ function Help() {
       <div className="eyebrow">الدعم</div>
       <h1>دليل الاستخدام</h1>
       <div className="help-grid">
-        <div className="panel"><h3>التحقق العام · Public verify</h3><p>أدخل مرجع الإجازة أو رمز انخراط المدرب/التلميذ فقط. النظام لا يعرض المعرّفات الداخلية.</p></div>
+        <div className="panel"><h3>تحقق الرخصة · Staff only</h3><p>التحقق من الرخصة للعاملين المسجّلين فقط عبر فضاء العاملين. المشاهدون لا يرون الاسم أو بيانات الرخصة.</p></div>
         <div className="panel"><h3>انخراط المؤسسة · Enrolment</h3><p>الولاية ثم الدائرة ثم البلدية، واسم حر للمؤسسة. الطلب معلّق حتى تعتمد الرابطة الولائية.</p></div>
         <div className="panel"><h3>النطاق الإداري · Scope</h3><p>الوطني يرى الكل، الرابطة ولايتها، الدائرة دائرتها، والمؤسسة سجلها فقط — عدل جغرافي لا امتياز شخصي.</p></div>
         <div className="panel"><h3>حفظ التاريخ · Memory</h3><p>الأثر لا يُمحى. الإغلاق والأرشفة يحفظان السجل كذاكرة إدارية للموسم والوطن.</p></div>

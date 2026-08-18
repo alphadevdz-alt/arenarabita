@@ -17,7 +17,7 @@ const values = [
   { ar: 'أفق رياضي', en: 'A sporting horizon', body: 'من الدائرة إلى النهائي الوطني، المسار نفسه لكل الولايات — شرقًا وغربًا، جنوبًا وشمالًا.' }
 ];
 
-export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onVerify: () => void; onMore: () => void; onResults: () => void; onCompetitions: () => void }) {
+export function HomeArena({ onMore, onResults, onCompetitions }: { onMore: () => void; onResults: () => void; onCompetitions: () => void }) {
   const [slide, setSlide] = useState(0);
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [scores, setScores] = useState<any[]>([]);
@@ -52,7 +52,7 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
           <p className="hero-en">A national school-sports ledger — transparent, scoped, and worthy of the Republic.</p>
           <div className="hero-actions">
             <button className="primary" onClick={onCompetitions}><Trophy size={16} /> الرزنامة / Calendar</button>
-            <button className="secondary" onClick={onVerify}><QrCode size={16} /> تحقق من ترخيص</button>
+            <a className="secondary" href="/admin.html"><QrCode size={16} /> تحقق للعاملين</a>
           </div>
         </div>
         <div className="cinema-nav">

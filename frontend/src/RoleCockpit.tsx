@@ -28,12 +28,13 @@ export async function api(path: string, token: string, init?: RequestInit) {
 
 export function menusFor(role: string): { id: string; label: string }[] {
   const account = { id: 'account', label: 'الحساب' };
-  if (role === 'SYSTEM_ADMINISTRATOR') return [{ id: 'home', label: 'لوحة المشرف' }, { id: 'users', label: 'المستخدمون' }, { id: 'organizations', label: 'الرابطات' }, { id: 'audit', label: 'التدقيق' }, { id: 'reports', label: 'التقارير' }, account];
-  if (role === 'NATIONAL_ADMINISTRATOR') return [{ id: 'home', label: 'لوحة وطنية' }, { id: 'seasons', label: 'المواسم' }, { id: 'competitions', label: 'المنافسات' }, { id: 'announcements', label: 'الإعلانات' }, { id: 'results', label: 'النتائج' }, { id: 'reports', label: 'التقارير' }, account];
-  if (role === 'ASSOCIATION_ADMINISTRATOR') return [{ id: 'home', label: 'لوحة الرابطة' }, { id: 'approvals', label: 'طلبات الانخراط' }, { id: 'institutions', label: 'المؤسسات' }, { id: 'participants', label: 'المشاركون' }, { id: 'licenses', label: 'التراخيص' }, { id: 'entries', label: 'التسجيلات' }, account];
-  if (role === 'ASSOCIATION_REPRESENTATIVE') return [{ id: 'home', label: 'لوحة التمثيل' }, { id: 'participants', label: 'المشاركون' }, { id: 'competitions', label: 'المنافسات' }, { id: 'entries', label: 'التسجيلات' }, account];
-  if (role === 'DAIRA_OFFICER') return [{ id: 'home', label: 'لوحة الدائرة' }, { id: 'institutions', label: 'مؤسسات الدائرة' }, { id: 'participants', label: 'المشاركون' }, account];
-  return [{ id: 'home', label: 'لوحة المؤسسة' }, { id: 'participants', label: 'تلاميذ المؤسسة' }, { id: 'licenses', label: 'طلب ترخيص' }, { id: 'entries', label: 'التسجيل في منافسة' }, account];
+  const verify = { id: 'verify', label: 'تحقق من رخصة' };
+  if (role === 'SYSTEM_ADMINISTRATOR') return [{ id: 'home', label: 'لوحة المشرف' }, verify, { id: 'users', label: 'المستخدمون' }, { id: 'organizations', label: 'الرابطات' }, { id: 'audit', label: 'التدقيق' }, { id: 'reports', label: 'التقارير' }, account];
+  if (role === 'NATIONAL_ADMINISTRATOR') return [{ id: 'home', label: 'لوحة وطنية' }, verify, { id: 'seasons', label: 'المواسم' }, { id: 'competitions', label: 'المنافسات' }, { id: 'announcements', label: 'الإعلانات' }, { id: 'results', label: 'النتائج' }, { id: 'reports', label: 'التقارير' }, account];
+  if (role === 'ASSOCIATION_ADMINISTRATOR') return [{ id: 'home', label: 'لوحة الرابطة' }, verify, { id: 'approvals', label: 'طلبات الانخراط' }, { id: 'institutions', label: 'المؤسسات' }, { id: 'participants', label: 'المشاركون' }, { id: 'licenses', label: 'التراخيص' }, { id: 'entries', label: 'التسجيلات' }, account];
+  if (role === 'ASSOCIATION_REPRESENTATIVE') return [{ id: 'home', label: 'لوحة التمثيل' }, verify, { id: 'participants', label: 'المشاركون' }, { id: 'competitions', label: 'المنافسات' }, { id: 'entries', label: 'التسجيلات' }, account];
+  if (role === 'DAIRA_OFFICER') return [{ id: 'home', label: 'لوحة الدائرة' }, verify, { id: 'institutions', label: 'مؤسسات الدائرة' }, { id: 'participants', label: 'المشاركون' }, account];
+  return [{ id: 'home', label: 'لوحة المؤسسة' }, verify, { id: 'participants', label: 'تلاميذ المؤسسة' }, { id: 'licenses', label: 'طلب ترخيص' }, { id: 'entries', label: 'التسجيل في منافسة' }, account];
 }
 
 export function RoleHome({ token, role, user }: { token: string; role: string; user: any }) {
