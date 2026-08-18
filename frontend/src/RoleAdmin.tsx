@@ -67,10 +67,10 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
         <section className="login-page">
           <a className="back" href="/">← البوابة العامة للجمهور</a>
           <div className="login-card">
-            <div className="brand-mark">ن</div>
-            <div className="eyebrow"><ShieldCheck size={18} /> فضاء العاملين فقط</div>
-            <h1>دخول الإدارة</h1>
-            <p>هذه الصفحة منفصلة تماماً عن واجهة الجمهور.</p>
+            <div className="brand-mark">★</div>
+            <div className="eyebrow"><ShieldCheck size={18} /> Staff only · فضاء العاملين</div>
+            <h1>دخول التسيير الوطني</h1>
+            <p>منفصلة عن البوابة العامة. الحسابات التجريبية محلية وليست إنتاجاً وزارياً.</p>
             <form onSubmit={submit}>
               <label>اسم المستخدم<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
               <label>كلمة المرور<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required /></label>
@@ -101,8 +101,8 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
         <a className="back" href="/">← البوابة العامة</a>
         <div className="admin-head">
           <div>
-            <div className="eyebrow"><LayoutDashboard size={18} /> فضاء التسيير</div>
-            <h1>مرحبًا، {user.username}</h1>
+            <div className="eyebrow"><LayoutDashboard size={18} /> هرم التسيير · Governance cockpit</div>
+            <h1>مرحبًا، {user.displayName ?? user.username}</h1>
             <p>{user.roles?.map((role: string) => labels[role] ?? role).join(' · ')}</p>
           </div>
           <button className="secondary" onClick={logout}><LogOut size={16} /> خروج</button>

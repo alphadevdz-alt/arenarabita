@@ -209,6 +209,7 @@ nav { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
 
 .verify-page, .listing, .admin { max-width: 1100px; width: 88%; margin: 56px auto; flex: 1; }
 .verify-page { max-width: 720px; }
+.verify-page code { display: inline-block; background: #102018; color: #e8d48a; padding: 2px 8px; border-radius: 8px; font-size: 12px; margin: 4px 0; direction: ltr; }
 .verify-form { display: flex; gap: 10px; margin-top: 28px; }
 .verify-form input, .inline-form input, .login-card input, .login-card select, .inline-form select {
   flex: 1;

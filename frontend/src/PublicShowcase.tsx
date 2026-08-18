@@ -15,9 +15,9 @@ export function TeamsBoard({ onPlayer }: { onPlayer: (id: string) => void }) {
   }
   return (
     <section className="listing arena">
-      <div className="eyebrow"><Users /> دفتر الفرق</div>
-      <h1>الفرق بأسماء مستعارة</h1>
-      <p className="lede">اطّلع على تشكيلة الخصم كبطاقة نادي محترفة. الأسماء المعروضة مستعارة لحماية هوية التلاميذ.</p>
+      <div className="eyebrow"><Users /> دفتر الفرق · Club book</div>
+      <h1>أندية مدرسية بأسماء مستعارة</h1>
+      <p className="lede">بطاقات نادي محترفة دون كشف هوية التلاميذ. الاسم المستعار حماية، والانتماء للولاية فخر.</p>
       {!teams && <div className="empty">جارٍ التحميل…</div>}
       <div className="team-grid">
         {teams?.map((team) => (
@@ -86,8 +86,8 @@ export function HonorsBoard() {
   }, []);
   return (
     <section className="listing arena">
-      <div className="eyebrow"><Medal /> منصة التتويج</div>
-      <h1>الميداليات والأرقام القياسية</h1>
+      <div className="eyebrow"><Medal /> منصة التتويج · Honours</div>
+      <h1>ذهب الولاية… ومجد المدرسة</h1>
       <div className="split">
         <div>
           <h3>تكريمات الموسم</h3>
@@ -132,8 +132,8 @@ export function Scoreboard() {
   }, []);
   return (
     <section className="listing arena">
-      <div className="eyebrow"><Trophy /> لوحة النتائج</div>
-      <h1>نتائج المباريات والمنافسات</h1>
+      <div className="eyebrow"><Trophy /> لوحة النتائج · Scoreboard</div>
+      <h1>ما اعتُمد يُنشر — لا شيء قبل التدقيق</h1>
       <div className="score-grid">
         {rows.map((row) => (
           <article className="score-card" key={row.id}>
