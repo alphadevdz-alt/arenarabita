@@ -13,6 +13,7 @@
     "import:geography": "node scripts/import-geography.mjs", "import:geoalgeria": "node scripts/import-geoalgeria.mjs",
     "seed:data": "node scripts/seed-demo-data.mjs",
     "seed:simulation": "node scripts/seed-simulation.mjs",
+    "seed:national": "node scripts/seed-national-detail.mjs",
     "pg:embedded": "node scripts/start-embedded-pg.mjs",
     "test": "vitest run",
     "test:integration": "vitest run tests/db.integration.test.ts tests/workflow.integration.test.ts"

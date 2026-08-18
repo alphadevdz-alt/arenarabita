@@ -325,6 +325,16 @@ footer {
 .score-body { display: flex; gap: 12px; align-items: center; }
 .score-body .mini { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 .roster { margin-top: 28px; }
+.admin-shell { min-height: 100vh; background: #0e1c16; }
+.admin-shell .admin, .admin-shell .login-page { color: #e8f4ee; }
+.admin-shell .admin h1, .admin-shell .login-card h1 { color: #f4fbf7; }
+.admin-shell .login-card, .admin-shell .data-table, .admin-shell .summary-card, .admin-shell .panel {
+  background: #13261d;
+  border-color: #1f3d30;
+  color: #e8f4ee;
+}
+.admin-shell .back { color: #8fd0b0; }
+footer a { color: #66776f; }
 
 @media (max-width: 860px) {
   .topbar { flex-wrap: wrap; }

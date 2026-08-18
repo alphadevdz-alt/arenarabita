@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, BarChart3, CheckCircle2, FileCheck2, Landmark, LayoutDashboard, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
+import { Activity, CheckCircle2, FileCheck2, Landmark, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
 import { RoleAdmin } from './RoleAdmin';
 import { HonorsBoard, PlayerCard, Scoreboard, TeamsBoard } from './PublicShowcase';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'verify' | 'register' | 'admin';
+
+function Root() {
+  const [mode, setMode] = useState(location.hash.startsWith('#/admin') ? 'admin' : 'public');
+  useEffect(() => {
+    const sync = () => setMode(location.hash.startsWith('#/admin') ? 'admin' : 'public');
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+  if (mode === 'admin') return <RoleAdmin standalone />;
+  return <App />;
+}
 
 function App() {
   const [view, setView] = useState<View>('home');
@@ -57,10 +68,9 @@ function App() {
             <button key={key} className={view === key ? 'active' : ''} onClick={() => setView(key)}>{label}</button>
           ))}
         </nav>
-        <button className="admin-link" onClick={() => setView('admin')}><LayoutDashboard size={16} /> البوابة الإدارية</button>
       </header>
       <main>
-        {view === 'home' && <Home onVerify={() => setView('verify')} onAdmin={() => setView('admin')} onMore={() => setView('announcements')} />}
+        {view === 'home' && <Home onVerify={() => setView('verify')} onMore={() => setView('announcements')} />}
         {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
         {view === 'competitions' && <CompetitionsListing />}
         {view === 'teams' && <TeamsBoard onPlayer={(id) => { setPlayerId(id); setView('player'); }} />}
@@ -93,17 +103,16 @@ function App() {
           </section>
         )}
         {view === 'register' && <InstitutionRegister />}
-        {view === 'admin' && <RoleAdmin onBack={() => setView('home')} />}
       </main>
       <footer>
         <span>© {new Date().getFullYear()} NSSMS — منصة وطنية لتسيير الرياضة المدرسية</span>
-        <span>التحقق العام · التدقيق · عدم الحذف النهائي</span>
+        <a href="#/admin">فضاء العاملين</a>
       </footer>
     </div>
   );
 }
 
-function Home({ onVerify, onAdmin, onMore }: { onVerify: () => void; onAdmin: () => void; onMore: () => void }) {
+function Home({ onVerify, onMore }: { onVerify: () => void; onMore: () => void }) {
   const [stats, setStats] = useState({ seasons: '—', competitions: '—', announcements: '—' });
   const [news, setNews] = useState<any[]>([]);
   useEffect(() => {
@@ -130,7 +139,7 @@ function Home({ onVerify, onAdmin, onMore }: { onVerify: () => void; onAdmin: ()
           <p className="lede">منصة موحّدة للمواسم والمنافسات والإجازات الرقمية، مع سجل تدقيق محفوظ وتحقق عام لا يكشف البيانات الداخلية.</p>
           <div className="hero-actions">
             <button className="primary" onClick={onVerify}><QrCode size={18} /> تحقق من ترخيص</button>
-            <button className="secondary" onClick={onAdmin}>دخول الإدارة</button>
+            <button className="secondary" onClick={onMore}>الإعلانات الرسمية</button>
           </div>
         </div>
         <div className="hero-visual">
@@ -323,4 +332,4 @@ function InstitutionRegister() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><Root /></React.StrictMode>);

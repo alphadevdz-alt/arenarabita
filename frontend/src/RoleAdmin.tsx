@@ -27,7 +27,7 @@ async function api(path: string, token: string, init?: RequestInit) {
   return response.json();
 }
 
-export function RoleAdmin({ onBack }: { onBack: () => void }) {
+export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void; standalone?: boolean }) {
   const [user, setUser] = useState<any>(null);
   const [username, setUsername] = useState('demo.admin');
   const [password, setPassword] = useState('');
