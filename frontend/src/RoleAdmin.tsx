@@ -83,7 +83,10 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
               <button type="button" onClick={() => { setUsername('demo.association.admin'); setPassword('NssmsAssocAdmin-2026!'); }}>رابطة ولائية — demo.association.admin</button>
               <button type="button" onClick={() => { setUsername('demo.association.rep'); setPassword('NssmsAssocRep-2026!'); }}>ممثل رابطة — demo.association.rep</button>
               <button type="button" onClick={() => { setUsername('demo.daira.officer'); setPassword('NssmsDairaOff-2026!'); }}>ممثل دائرة — demo.daira.officer</button>
-              <button type="button" onClick={() => { setUsername('demo.institution'); setPassword('NssmsInstitution-2026!'); }}>مؤسسة منخرطة — demo.institution</button>
+              <button type="button" onClick={() => { setUsername('demo.w19.admin'); setPassword('NssmsWilayaAdmin-2026!'); }}>رابطة سطيف — demo.w19.admin</button>
+              <button type="button" onClick={() => { setUsername('demo.w19.rep'); setPassword('NssmsWilayaRep-2026!'); }}>ممثل سطيف — demo.w19.rep</button>
+              <button type="button" onClick={() => { setUsername('demo.w19.daira'); setPassword('NssmsWilayaDaira-2026!'); }}>دائرة سطيف — demo.w19.daira</button>
+              <button type="button" onClick={() => { setUsername('demo.w19.school'); setPassword('NssmsWilayaSchool-2026!'); }}>مؤسسة سطيف — demo.w19.school</button>
             </div>
           </div>
         </section>

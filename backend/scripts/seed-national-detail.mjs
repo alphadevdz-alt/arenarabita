@@ -47,6 +47,26 @@ try {
     );
     await pool.query("INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='ASSOCIATION_ADMINISTRATOR' ON CONFLICT DO NOTHING", [user.rows[0].id]);
 
+    const repUser = `demo.w${String(wilayaId).padStart(2, '0')}.rep`;
+    const rep = await pool.query(
+      `INSERT INTO users(username,display_name,password_hash,status,organization_id,daira_id)
+       VALUES($1,$2,$3,'ACTIVE',$4,$5)
+       ON CONFLICT(username) DO UPDATE SET display_name=EXCLUDED.display_name,password_hash=EXCLUDED.password_hash,organization_id=EXCLUDED.organization_id,status='ACTIVE'
+       RETURNING id`,
+      [repUser, `ممثل رابطة ${label}`, encode('NssmsWilayaRep-2026!'), org.rows[0].id, dairaId]
+    );
+    await pool.query("INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='ASSOCIATION_REPRESENTATIVE' ON CONFLICT DO NOTHING", [rep.rows[0].id]);
+
+    const dairaUser = `demo.w${String(wilayaId).padStart(2, '0')}.daira`;
+    const officer = await pool.query(
+      `INSERT INTO users(username,display_name,password_hash,status,organization_id,daira_id)
+       VALUES($1,$2,$3,'ACTIVE',$4,$5)
+       ON CONFLICT(username) DO UPDATE SET display_name=EXCLUDED.display_name,password_hash=EXCLUDED.password_hash,organization_id=EXCLUDED.organization_id,daira_id=EXCLUDED.daira_id,status='ACTIVE'
+       RETURNING id`,
+      [dairaUser, `ممثل دائرة ${label}`, encode('NssmsWilayaDaira-2026!'), org.rows[0].id, dairaId]
+    );
+    await pool.query("INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='DAIRA_OFFICER' ON CONFLICT DO NOTHING", [officer.rows[0].id]);
+
     let schoolIndex = 0;
     for (const school of schools.rows) {
       const inst = await pool.query(
@@ -56,6 +76,15 @@ try {
          RETURNING id`,
         [org.rows[0].id, school.name_ar || school.name || school.name_fr, school.id, dairaId]
       );
+      const schoolUser = `demo.w${String(wilayaId).padStart(2, '0')}.school`;
+      const instUser = await pool.query(
+        `INSERT INTO users(username,display_name,password_hash,status,organization_id,institution_id,daira_id)
+         VALUES($1,$2,$3,'ACTIVE',$4,$5,$6)
+         ON CONFLICT(username) DO UPDATE SET display_name=EXCLUDED.display_name,password_hash=EXCLUDED.password_hash,organization_id=EXCLUDED.organization_id,institution_id=EXCLUDED.institution_id,daira_id=EXCLUDED.daira_id,status='ACTIVE'
+         RETURNING id`,
+        [schoolUser, `مسؤول ${school.name_ar || school.name || school.name_fr}`, encode('NssmsWilayaSchool-2026!'), org.rows[0].id, inst.rows[0].id, dairaId]
+      );
+      await pool.query("INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='MEMBER_INSTITUTION_USER' ON CONFLICT DO NOTHING", [instUser.rows[0].id]);
       const teamName = `فريق ${label} ${schoolIndex + 1}`;
       const team = await pool.query(
         `INSERT INTO teams(institution_id,name,alias,sport_kind,discipline,motto,crest_color,image_url)

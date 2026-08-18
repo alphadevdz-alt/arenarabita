@@ -38,9 +38,21 @@ export function menusFor(role: string): { id: string; label: string }[] {
 
 export function RoleHome({ token, role, user }: { token: string; role: string; user: any }) {
   const [summary, setSummary] = useState<any>(null);
-  useEffect(() => { api('/api/v1/dashboard/summary', token).then(setSummary).catch(() => setSummary({ error: 'تعذر التحميل' })); }, [token]);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  useEffect(() => {
+    api('/api/v1/dashboard/summary', token).then(setSummary).catch(() => setSummary({ error: 'تعذر التحميل' }));
+    api('/api/v1/admin/me/permissions', token).then((d) => setPermissions(d.data ?? [])).catch(() => setPermissions([]));
+  }, [token]);
   const meta = ROLE_META[role];
   const metricLabels: Record<string, string> = { organizations: 'الرابطات', institutions: 'المؤسسات', participants: 'المشاركون', licenses: 'التراخيص' };
+  const rights: Record<string, string[]> = {
+    SYSTEM_ADMINISTRATOR: ['إدارة المستخدمين والأدوار', 'الرابطات الوطنية', 'التدقيق الكامل', 'لا يُقيَّد بولاية'],
+    NATIONAL_ADMINISTRATOR: ['إنشاء المواسم والمنافسات', 'نشر الإعلانات', 'تسجيل النتائج', 'التقارير الوطنية'],
+    ASSOCIATION_ADMINISTRATOR: ['موافقة/رفض انخراط المؤسسات', 'إصدار التراخيص في الولاية', 'متابعة المشاركين'],
+    ASSOCIATION_REPRESENTATIVE: ['عرض المشاركين', 'التسجيل في المنافسات', 'بدون موافقة انخراط'],
+    DAIRA_OFFICER: ['عرض مؤسسات الدائرة', 'عرض المشاركين في النطاق', 'بدون إصدار تراخيص وطنية'],
+    MEMBER_INSTITUTION_USER: ['تسيير تلاميذ المؤسسة فقط', 'طلب ترخيص', 'التسجيل في منافسة مفتوحة']
+  };
   return (
     <div className="cockpit-home">
       <article className="rank-banner" style={{ borderColor: meta.color }}>
@@ -56,6 +68,17 @@ export function RoleHome({ token, role, user }: { token: string; role: string; u
         {Object.entries(summary?.data ?? {}).map(([key, value]) => (
           <div className="summary-card" key={key}><small>{metricLabels[key] ?? key}</small><b>{String(value)}</b></div>
         ))}
+      </div>
+      <div className="admin-grid">
+        <div className="panel">
+          <h3>صلاحيات هذه الرتبة</h3>
+          {(rights[role] ?? []).map((item) => <div className="overview-stat" key={item}><b>✓</b><small>{item}</small></div>)}
+        </div>
+        <div className="panel">
+          <h3>مفاتيح الصلاحية في النظام</h3>
+          {permissions.length === 0 && <div className="empty">لا توجد مفاتيح إضافية أو تعذر التحميل.</div>}
+          {permissions.map((key) => <div className="overview-stat" key={key}><small>{key}</small></div>)}
+        </div>
       </div>
       <div className="hierarchy">
         <span className={role === 'SYSTEM_ADMINISTRATOR' ? 'on' : ''}><Shield size={14} /> مشرف عام</span>
