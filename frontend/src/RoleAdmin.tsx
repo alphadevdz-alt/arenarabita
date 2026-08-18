@@ -18,7 +18,7 @@ const seasonNext: Record<string, string> = { DRAFT: 'UNDER_REVIEW', UNDER_REVIEW
 const competitionNext: Record<string, string> = { DRAFT: 'REVIEW', REVIEW: 'APPROVED', APPROVED: 'REGISTRATION', REGISTRATION: 'ACTIVE', ACTIVE: 'RESULTS', RESULTS: 'CLOSED', CLOSED: 'ARCHIVED' };
 const licenseNext: Record<string, string> = { APPLICATION: 'VALIDATION', VALIDATION: 'APPROVAL', APPROVAL: 'ISSUED', ISSUED: 'ACTIVE', ACTIVE: 'EXPIRED' };
 
-type Tab = 'dashboard' | 'institutions' | 'organizations' | 'participants' | 'seasons' | 'competitions' | 'entries' | 'licenses' | 'results' | 'announcements' | 'users' | 'audit' | 'reports' | 'approvals' | 'account' | 'verify';
+type Tab = 'dashboard' | 'institutions' | 'organizations' | 'participants' | 'seasons' | 'competitions' | 'entries' | 'licenses' | 'results' | 'announcements' | 'users' | 'audit' | 'reports' | 'approvals' | 'account' | 'verify' | 'cards';
 
 async function api(path: string, token: string, init?: RequestInit) {
   const response = await fetch(`${API}${path}`, {
@@ -32,8 +32,9 @@ async function api(path: string, token: string, init?: RequestInit) {
 export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void; standalone?: boolean }) {
   const [user, setUser] = useState<any>(null);
   const [username, setUsername] = useState('demo.admin');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('NssmsDemoAdmin-2026!');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('nssms_token');
@@ -44,14 +45,23 @@ export function RoleAdmin({ onBack, standalone = false }: { onBack?: () => void;
       .catch(() => localStorage.removeItem('nssms_token'));
   }, []);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const response = await fetch(`${API}/api/v1/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }) });
+  async function loginWith(name: string, pass: string) {
+    setUsername(name);
+    setPassword(pass);
+    setBusy(true);
+    setError('');
+    const response = await fetch(`${API}/api/v1/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: name, password: pass }) });
+    setBusy(false);
     if (!response.ok) { setError('بيانات الدخول غير صحيحة'); return; }
     const data = await response.json();
     localStorage.setItem('nssms_token', data.token);
+    localStorage.setItem('nssms_last_user', name);
     setUser(data.user);
-    setError('');
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    await loginWith(username, password);
   }
 
   async function logout() {
@@ -649,41 +659,6 @@ function StaffVerify({ token }: { token: string }) {
             {result.givenName && <div><dt>الاسم</dt><dd>{result.givenName}</dd></div>}
             {result.familyName && <div><dt>اللقب</dt><dd>{result.familyName}</dd></div>}
             <div><dt>نوع الترخيص</dt><dd>{{ STUDENT: 'تلميذ', COACH: 'مدرب', OFFICIAL: 'إطار رسمي' }[result.licenseKind ?? result.role] ?? result.licenseKind ?? result.role ?? 'رخصة'}</dd></div>
-            <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
-            <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
-            {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
-          </dl>
-        </article>
-      )}
-    </section>
-  );
-}
-
-function Reports({ token }: { token: string }) {
-  const [data, setData] = useState<any>(null);
-  useEffect(() => {
-    Promise.all([api('/api/v1/admin/reports/summary', token), api('/api/v1/admin/reports/status-breakdown', token)])
-      .then(([summary, breakdown]) => setData({ summary: summary.data, breakdown: breakdown.data }))
-      .catch(() => setData({ error: 'تعذر تحميل التقارير' }));
-  }, [token]);
-  if (!data) return <div className="empty">جارٍ تحميل التقارير…</div>;
-  if (data.error) return <div className="alert error">{data.error}</div>;
-  return (
-    <div className="admin-grid">
-      <div className="panel">
-        <h3>ملخص وطني</h3>
-        {Object.entries(data.summary ?? {}).map(([key, value]) => (
-          <div className="overview-stat" key={key}><b>{key}</b><small>{String(value)}</small></div>
-        ))}
-      </div>
-      <div className="panel">
-        <h3>توزيع الحالات</h3>
-        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 12 }}>{JSON.stringify(data.breakdown, null, 2)}</pre>
-      </div>
-    </div>
-  );
-}
-ole] ?? result.licenseKind ?? result.role ?? 'رخصة'}</dd></div>
             <div><dt>الرياضة</dt><dd>{result.discipline ?? '—'}</dd></div>
             <div><dt>الفئة العمرية</dt><dd>{result.ageCategory ?? '—'}</dd></div>
             {result.institutionName && <div><dt>المؤسسة</dt><dd>{result.institutionName}</dd></div>}
