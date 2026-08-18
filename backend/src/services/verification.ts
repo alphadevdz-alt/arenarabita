@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { pool } from '../infrastructure/db.js';
 
-export function hashVerificationReference(reference: string): string { return createHash('sha256').update(reference, 'utf8').digest('hex'); }
+export function hashVerificationReference(reference: string): string { return createHash('sha256').update(reference.trim(), 'utf8').digest('hex'); }
 export function createVerificationReference(): string { return randomBytes(32).toString('base64url'); }
 
 export async function verifyLicense(reference: string) {

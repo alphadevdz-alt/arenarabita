@@ -127,18 +127,29 @@ try {
      RETURNING id`,
     [participantIds[0]]
   );
-  if (license.rows[0]) {
-    const { createVerificationReference, hashVerificationReference } = await import('../dist/services/verification.js').catch(async () => {
-      const { createHash, randomBytes: rb } = await import('node:crypto');
-      return {
-        createVerificationReference: () => rb(24).toString('base64url'),
-        hashVerificationReference: (value) => createHash('sha256').update(value).digest('hex')
-      };
-    });
-    const reference = createVerificationReference();
-    await pool.query('INSERT INTO qr_verifications(license_id,reference_hash) VALUES($1,$2) ON CONFLICT DO NOTHING', [license.rows[0].id, hashVerificationReference(reference)]);
-    console.log(`license_reference ${reference}`);
+  const { createHash } = await import('node:crypto');
+  const hashText = (value) => createHash('sha256').update(value).digest('hex');
+  const licenseId = license.rows[0]?.id ?? (await pool.query('SELECT id FROM sports_licenses WHERE participant_id=$1', [participantIds[0]])).rows[0]?.id;
+  const demoLicenseRef = 'NSSMS-LIC-SETIF-FARHAT-ABBAS-2026';
+  if (licenseId) {
+    await pool.query(
+      `INSERT INTO qr_verifications(license_id,reference_hash) VALUES($1,$2)
+       ON CONFLICT (license_id) DO UPDATE SET reference_hash=EXCLUDED.reference_hash, revoked_at=NULL`,
+      [licenseId, hashText(demoLicenseRef)]
+    );
+    console.log(`license_reference ${demoLicenseRef}`);
   }
+
+  const coachCode = 'NSSMS-COACH-5D56C0935D8249B5';
+  const studentCode = 'NSSMS-STUD-AAD93430F8E1A1F1';
+  await pool.query(
+    `INSERT INTO enrollment_codes(institution_id,role_kind,code_hash,label,status)
+     VALUES ($1,'COACH',$2,'رمز المدرب','ACTIVE'),($1,'STUDENT',$3,'رمز التلميذ','ACTIVE')
+     ON CONFLICT (code_hash) DO UPDATE SET institution_id=EXCLUDED.institution_id,status='ACTIVE'`,
+    [institution.rows[0].id, hashText(coachCode), hashText(studentCode)]
+  );
+  console.log(`enrollment_coach ${coachCode}`);
+  console.log(`enrollment_student ${studentCode}`);
 
   await pool.query(
     `INSERT INTO results(competition_id,participant_id,result_data,status)

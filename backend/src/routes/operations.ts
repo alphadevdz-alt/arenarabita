@@ -15,7 +15,7 @@ export async function registerOperationRoutes(app: FastifyInstance) {
     const parsed = z.object({ reference: z.string().min(12).max(80) }).safeParse(request.params);
     if (!parsed.success) return reply.code(400).send({ error: 'validation_error' });
     const { createHash } = await import('node:crypto');
-    const hash = createHash('sha256').update(parsed.data.reference).digest('hex');
+    const hash = createHash('sha256').update(parsed.data.reference.trim().toUpperCase()).digest('hex');
     const result = await pool.query("SELECT e.role_kind,e.label,e.status,i.name AS institution_name FROM enrollment_codes e JOIN educational_institutions i ON i.id=e.institution_id WHERE e.code_hash=$1 LIMIT 1", [hash]);
     if (!result.rowCount) return reply.code(404).send({ error: 'enrollment_not_found' });
     return { verified: true, role: result.rows[0].role_kind, label: result.rows[0].label, status: result.rows[0].status, institutionName: result.rows[0].institution_name };

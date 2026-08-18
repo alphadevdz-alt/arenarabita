@@ -46,7 +46,7 @@ export function buildApp() {
       const { createHash, randomBytes } = await import('node:crypto');
       const makeCode = (kind: string) => {
         const raw = `NSSMS-${kind}-${randomBytes(8).toString('hex').toUpperCase()}`;
-        const hash = createHash('sha256').update(raw).digest('hex');
+        const hash = createHash('sha256').update(raw.toUpperCase()).digest('hex');
         return { raw, hash };
       };
       const coach = makeCode('COACH');
@@ -116,7 +116,7 @@ export function buildApp() {
   void registerOperationRoutes(app);
   app.get('/api/v1/public/licenses/verify/:reference', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     reply.header('cache-control', 'no-store');
-    const parsed = z.object({ reference: z.string().min(20).max(200) }).safeParse(request.params);
+    const parsed = z.object({ reference: z.string().min(12).max(200) }).safeParse(request.params);
     if (!parsed.success) return reply.code(400).send({ error: 'invalid_verification_reference' });
     let verification;
     try { verification = await verifyLicense(parsed.data.reference); } catch (error) { request.log.error(error); return reply.code(503).send({ error: 'verification_unavailable' }); }

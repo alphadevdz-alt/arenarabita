@@ -19,10 +19,20 @@ function App() {
     e.preventDefault();
     setError('');
     setResult(null);
+    const token = reference.trim().toUpperCase();
     try {
-      const r = await fetch(`${API}/api/v1/public/licenses/verify/${encodeURIComponent(reference)}`);
-      if (!r.ok) throw new Error('لم يتم العثور على ترخيص مطابق');
-      setResult(await r.json());
+      const enrollment = await fetch(`${API}/api/v1/public/enrollment/verify/${encodeURIComponent(token)}`);
+      if (enrollment.ok) {
+        setResult(await enrollment.json());
+        return;
+      }
+      const license = await fetch(`${API}/api/v1/public/licenses/verify/${encodeURIComponent(token)}`);
+      if (!license.ok) {
+        throw new Error(license.status === 503 || enrollment.status === 503
+          ? 'خدمة التحقق غير متاحة حالياً. تأكد أن قاعدة البيانات تعمل.'
+          : 'لم يتم العثور على ترخيص أو رمز انخراط مطابق');
+      }
+      setResult(await license.json());
     } catch (x) {
       setError(x instanceof Error ? x.message : 'تعذر الاتصال بالخادم');
     }
@@ -46,10 +56,10 @@ function App() {
       <div className="official-bar" />
       <header className="topbar">
         <div className="brand" onClick={() => setView('home')}>
-          <span className="brand-mark">ن</span>
+          <span className="brand-mark">★</span>
           <span>
             <b>NSSMS</b>
-            <small>النظام الوطني لتسيير الرياضة المدرسية</small>
+            <small>النظام الوطني لتسيير الرياضة المدرسية · الجزائر</small>
           </span>
         </div>
         <nav>
@@ -72,9 +82,10 @@ function App() {
           <section className="verify-page">
             <div className="eyebrow"><QrCode size={18} /> خدمة عمومية آمنة</div>
             <h1>تحقق من الترخيص الرياضي</h1>
-            <p>أدخل مرجع التحقق العام لعرض الحالة المعتمدة فقط، دون كشف المعرّفات الداخلية.</p>
+            <p>أدخل مرجع الإجازة أو رمز انخراط المدرب/التلميذ. النظام يعرض الحالة المعتمدة فقط دون المعرّفات الداخلية.</p>
+            <p className="lede">تجربة محلية: <code>NSSMS-COACH-5D56C0935D8249B5</code> أو <code>NSSMS-STUD-AAD93430F8E1A1F1</code> أو <code>NSSMS-LIC-SETIF-FARHAT-ABBAS-2026</code></p>
             <form onSubmit={verify} className="verify-form">
-              <input value={reference} onChange={(e) => setReference(e.target.value)} minLength={12} required placeholder="رمز الترخيص أو رمز انخراط مدرب/تلميذ" />
+              <input value={reference} onChange={(e) => setReference(e.target.value)} minLength={12} required placeholder="NSSMS-COACH-… أو NSSMS-STUD-… أو مرجع الترخيص" />
               <button className="primary"><Search size={18} /> تحقق الآن</button>
             </form>
             {error && <div className="alert error">{error}</div>}
@@ -189,10 +200,10 @@ function Help() {
       <div className="eyebrow">الدعم</div>
       <h1>دليل الاستخدام</h1>
       <div className="help-grid">
-        <div className="panel"><h3>التحقق العام</h3><p>أدخل مرجع الإجازة فقط. النظام لا يعرض أرقام التراخيص الداخلية.</p></div>
-        <div className="panel"><h3>انخراط المؤسسة</h3><p>يُرسل الطلب بحالة معلّقة حتى توافق الرابطة الولائية.</p></div>
-        <div className="panel"><h3>النطاق الإداري</h3><p>الوطني يرى الكل، الرابطة ولايتها، الدائرة دائرتها، والمؤسسة سجلها فقط.</p></div>
-        <div className="panel"><h3>حفظ التاريخ</h3><p>الإغلاق والأرشفة يحفظان السجل. لا يوجد حذف نهائي للبيانات المحكومة.</p></div>
+        <div className="panel"><h3>التحقق العام · Public verify</h3><p>أدخل مرجع الإجازة أو رمز انخراط المدرب/التلميذ فقط. النظام لا يعرض المعرّفات الداخلية.</p></div>
+        <div className="panel"><h3>انخراط المؤسسة · Enrolment</h3><p>الولاية ثم الدائرة ثم البلدية، واسم حر للمؤسسة. الطلب معلّق حتى تعتمد الرابطة الولائية.</p></div>
+        <div className="panel"><h3>النطاق الإداري · Scope</h3><p>الوطني يرى الكل، الرابطة ولايتها، الدائرة دائرتها، والمؤسسة سجلها فقط — عدل جغرافي لا امتياز شخصي.</p></div>
+        <div className="panel"><h3>حفظ التاريخ · Memory</h3><p>الأثر لا يُمحى. الإغلاق والأرشفة يحفظان السجل كذاكرة إدارية للموسم والوطن.</p></div>
       </div>
     </section>
   );
