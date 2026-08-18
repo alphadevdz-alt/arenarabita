@@ -21,7 +21,9 @@
 
 الإدارة منفصلة على `/admin.html`. الجمهور يبقى على الصفحة الرئيسية فقط.
 
-حساب رابطة لكل ولاية: `demo.w16.admin` … `demo.w58.admin` / `NssmsWilayaAdmin-2026!`
+حساب رابطة لكل ولاية: `demo.w16.admin` … / `NssmsHierarchy-2026!`  
+حساب كل دائرة: `demo.d{id}` / `NssmsHierarchy-2026!`  
+عشر مؤسسات لكل ولاية: `demo.w19.i01` … `demo.w19.i10` / `NssmsHierarchy-2026!` (رياضة وصنف مختلفان)
 
 ## تشغيل
 ```bash

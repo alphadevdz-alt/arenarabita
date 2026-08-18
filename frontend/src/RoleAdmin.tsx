@@ -143,7 +143,7 @@ function AdminWorkspace({ token, roles }: { token: string; roles: string[] }) {
       {tab === 'dashboard' && <ScopedDashboard token={token} roles={roles} />}
       {tab === 'approvals' && <Approvals token={token} />}
       {tab === 'organizations' && <Organizations token={token} />}
-      {tab === 'institutions' && <Collection token={token} path="/api/v1/admin/institutions" title="المؤسسات التعليمية" fields={['name', 'code', 'organization_name', 'status']} />}
+      {tab === 'institutions' && <Collection token={token} path="/api/v1/admin/institutions" title="المؤسسات التعليمية" fields={['name', 'code', 'organization_name', 'sport_discipline', 'sport_category', 'status']} />}
       {tab === 'participants' && <Participants token={token} canCreate={canWritePeople} />}
       {tab === 'seasons' && <LifecycleList token={token} path="/api/v1/admin/seasons" title="المواسم" fields={['name', 'status', 'start_date', 'end_date']} next={seasonNext} create={national ? { name: '', startDate: '', endDate: '' } : undefined} canTransition={national} />}
       {tab === 'competitions' && <Competitions token={token} national={national} />}
