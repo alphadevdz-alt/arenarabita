@@ -95,8 +95,21 @@ function App() {
         {view === 'register' && <InstitutionRegister />}
       </main>
       <footer>
-        <span>© {new Date().getFullYear()} NSSMS — منصة وطنية لتسيير الرياضة المدرسية</span>
-        <a href="/admin.html">فضاء العاملين</a>
+        <div className="site-foot">
+          <div>
+            <b>الجمهورية الجزائرية الديمقراطية الشعبية</b>
+            <span className="motto">بالشعب وللشعب — ومن المدرسة إلى الملعب الوطني</span>
+            <small>© {new Date().getFullYear()} NSSMS · National School Sports Management System</small>
+          </div>
+          <div>
+            <b>مرجع</b>
+            <small>حوكمة · أثر غير قابل للحذف · تحقق عمومي برمز</small>
+          </div>
+          <div>
+            <b>Staff</b>
+            <a href="/admin.html">فضاء العاملين / Administration</a>
+          </div>
+        </div>
       </footer>
     </div>
   );

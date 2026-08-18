@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, QrCode, Trophy, Users } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Landmark, QrCode, Sparkles, Trophy, Users } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 
 const slides = [
-  { image: '/media/season-open.jpg', title: 'افتتاح الموسم المدرسي', text: 'رزنامة وطنية معتمدة للحوكمة والشفافية.' },
-  { image: '/media/football.jpg', title: 'كرة القدم المدرسية', text: 'تجمعات ولائية تُتوَّج بفرق متأهلة للنهائي.' },
-  { image: '/media/athletics.jpg', title: 'ألعاب القوى', text: 'أرقام قياسية مدرسية تُعرض للجمهور فور اعتمادها.' },
-  { image: '/media/basketball.jpg', title: 'كرة السلة', text: 'نهائيات الإناث والذكور في هرم منافسات واضح.' },
-  { image: '/media/swimming.jpg', title: 'السباحة والجودو', text: 'رياضات فردية وجماعية في منصة واحدة.' }
+  { image: '/media/heritage-november.jpg', kicker: 'من نوفمبر إلى الملعب', title: 'الأرض التي أنجبت الشهداء تُنجب الأبطال', text: 'الرياضة المدرسية امتداد لكرامة نوفمبر: انضباط، تضحية، وانتماء للوطن قبل النتيجة.' },
+  { image: '/media/heritage-school-sport.jpg', kicker: 'المدرسة الجزائرية', title: 'من ساحة المؤسسة إلى راية الولاية', text: 'كل دائرة وكل بلدية جزء من هرم وطني واحد: تسجيل نزيه، ترخيص موثّق، وتتويج معتمد.' },
+  { image: '/media/football.jpg', kicker: 'كرة القدم المدرسية', title: 'تجمّعات ولائية تُتوَّج بالنهائي', text: 'مسار واضح من المؤسسة إلى الجهة ثم الوطن، بلا غموض في الأهلية أو النتائج.' },
+  { image: '/media/athletics.jpg', kicker: 'ألعاب القوى', title: 'رقم قياسي لا يُعتمد إلا بعد التدقيق', text: 'السجل العام يعرض ما صادقت عليه الإدارة فقط — الشفافية حماية للموهبة.' },
+  { image: '/media/heritage-stadium-dawn.jpg', kicker: 'المستقبل الرياضي', title: 'جيل يرى الأفق أبعد من الخط النهائي', text: 'حوكمة اليوم تصنع منتخبات الغد: فتيات وفتيان، فردي وجماعي، في منصة وطنية واحدة.' }
+];
+
+const values = [
+  { ar: 'نوفمبر مرجع', en: 'November as compass', body: 'روح أول نوفمبر: تضحية جماعية، صدق في العمل، وعلو راية الوطن على أي حساب ضيق.' },
+  { ar: 'المدرسة حاضنة', en: 'The school as cradle', body: 'المؤسسة التربوية هي الخلية الأولى: مدرب واحد، تلميذ مرخّص، واسم معتمد في الولاية.' },
+  { ar: 'أفق رياضي', en: 'A sporting horizon', body: 'من الدائرة إلى النهائي الوطني، المسار نفسه لكل الولايات — شرقًا وغربًا، جنوبًا وشمالًا.' }
 ];
 
 export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onVerify: () => void; onMore: () => void; onResults: () => void; onCompetitions: () => void }) {
@@ -19,7 +25,7 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
   const [teams, setTeams] = useState<any[]>([]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setSlide((i) => (i + 1) % slides.length), 5200);
+    const timer = window.setInterval(() => setSlide((i) => (i + 1) % slides.length), 5600);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -40,11 +46,12 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
         ))}
         <div className="cinema-shade" />
         <div className="cinema-copy">
-          <div className="eyebrow">مؤشر الرياضة المدرسية</div>
+          <div className="eyebrow">{current.kicker}</div>
           <h1>{current.title}</h1>
           <p>{current.text}</p>
+          <p className="hero-en">A national school-sports ledger — transparent, scoped, and worthy of the Republic.</p>
           <div className="hero-actions">
-            <button className="primary" onClick={onCompetitions}><Trophy size={16} /> الرزنامة</button>
+            <button className="primary" onClick={onCompetitions}><Trophy size={16} /> الرزنامة / Calendar</button>
             <button className="secondary" onClick={onVerify}><QrCode size={16} /> تحقق من ترخيص</button>
           </div>
         </div>
@@ -58,12 +65,23 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
       </section>
 
       <section className="ticker">
-        <b>نتائج مباشرة</b>
+        <b>نتائج مباشرة · Live</b>
         <div className="ticker-track">
           {(scores.length ? scores : [{ competition_name: 'بانتظار النتائج المعتمدة', result_data: {} }]).concat(scores).map((row, i) => (
             <span key={`${row.id ?? 'x'}-${i}`}>{row.competition_name} — {row.public_alias ?? 'فريق متأهل'} {row.result_data?.score ?? ''}</span>
           ))}
         </div>
+      </section>
+
+      <section className="values-strip">
+        {values.map((v) => (
+          <article key={v.ar} className="value-card">
+            <span className="crescent" aria-hidden>✦</span>
+            <h3>{v.ar}</h3>
+            <small>{v.en}</small>
+            <p>{v.body}</p>
+          </article>
+        ))}
       </section>
 
       <section className="home-grid">
@@ -87,7 +105,7 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
           </div>
         </div>
         <div>
-          <div className="section-head"><h2>هرم المنافسات</h2></div>
+          <div className="section-head"><h2>هرم المنافسات · The pyramid</h2></div>
           <div className="pyramid">
             <div className="pyr national">النهائي الوطني</div>
             <div className="pyr-row">
@@ -104,6 +122,15 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
           </div>
           {honors[0] && <div className="champion-chip"><Trophy size={16} /> بطل معتمد: {honors[0].public_alias}</div>}
         </div>
+      </section>
+
+      <section className="heritage-banner">
+        <Landmark size={22} />
+        <div>
+          <b>الشعب والجيش… ثم الملعب المدرسي</b>
+          <p>المنصة لا تستبدل المؤسسات الرسمية؛ تخدمها: أثر غير قابل للحذف، نطاق إداري واضح، وتحقق عمومي برمز لا يكشف السجلات الداخلية.</p>
+        </div>
+        <button className="secondary" onClick={onMore}>الإعلانات الرسمية</button>
       </section>
 
       <section className="preview">
@@ -126,7 +153,7 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
       </section>
 
       <section className="preview">
-        <div className="section-head"><h2><Users size={18} /> فرق في دائرة الضوء</h2></div>
+        <div className="section-head"><h2><Users size={18} /> فرق في دائرة الضوء · Spotlight</h2></div>
         <div className="spotlight">
           {teams.map((team) => (
             <article key={team.id} className="spot-card">
@@ -136,7 +163,9 @@ export function HomeArena({ onVerify, onMore, onResults, onCompetitions }: { onV
             </article>
           ))}
         </div>
-        <div className="hero-actions"><button className="secondary" onClick={onMore}>الإعلانات الرسمية</button></div>
+        <div className="hero-actions">
+          <button className="ghost" onClick={onCompetitions}><Sparkles size={16} /> أفق الموسم</button>
+        </div>
       </section>
     </div>
   );

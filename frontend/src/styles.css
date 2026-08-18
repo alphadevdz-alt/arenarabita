@@ -1,31 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap');
 
 :root {
-  --ink: #12241c;
-  --muted: #66776f;
-  --line: #d8e6de;
-  --paper: #f4f8f5;
+  --ink: #10241b;
+  --muted: #5d7168;
+  --line: #d4e4da;
+  --paper: #f3f7f2;
   --card: #ffffff;
-  --green: #0f6b4a;
-  --green-deep: #0a4d35;
-  --green-soft: #e7f4ee;
-  --gold: #c4a35a;
-  --red: #b42318;
-  --shadow: 0 16px 40px rgba(18, 52, 38, 0.08);
-  font-family: 'Cairo', Arial, sans-serif;
+  --green: #0d6244;
+  --green-deep: #073728;
+  --green-soft: #e6f3ec;
+  --gold: #c9a24a;
+  --gold-deep: #8a6a1e;
+  --red: #c1121f;
+  --shadow: 0 18px 44px rgba(12, 40, 28, 0.09);
+  font-family: 'Cairo', 'Amiri', Arial, sans-serif;
   color: var(--ink);
   background: var(--paper);
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: radial-gradient(circle at 10% 0, #eef7f2, var(--paper) 42%); }
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 88% -10%, rgba(201,162,74,.18), transparent 36%),
+    radial-gradient(circle at 8% 0, #eef7f1, var(--paper) 46%);
+}
+h1, h2, .cinema-copy h1 { font-family: 'Amiri', 'Cairo', serif; }
 button { font: inherit; border: 0; cursor: pointer; }
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 
 .official-bar {
-  height: 6px;
-  background: linear-gradient(90deg, var(--green) 0 38%, #fff 38% 62%, #d62828 62% 100%);
+  height: 7px;
+  background: linear-gradient(90deg, var(--green) 0 36%, #fff 36% 50%, var(--red) 50% 100%);
+  box-shadow: 0 1px 0 rgba(201,162,74,.35);
 }
 
 .topbar {
@@ -43,16 +51,18 @@ button { font: inherit; border: 0; cursor: pointer; }
 
 .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 250px; }
 .brand-mark {
-  background: linear-gradient(160deg, var(--green), var(--green-deep));
-  color: white;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  background: radial-gradient(circle at 30% 25%, #1a8a5c, var(--green) 42%, var(--green-deep));
+  color: #fff8e6;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.15);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 3px #0d624422;
+  font-family: 'Amiri', serif;
 }
 .brand b { display: block; letter-spacing: 1.4px; }
 .brand small { display: block; font-size: 11px; color: var(--muted); }
@@ -357,10 +367,11 @@ footer a { color: #66776f; }
   transition: opacity 1s ease, transform 7s ease;
 }
 .cinema-slide.show { opacity: 1; transform: scale(1); }
-.cinema-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,20,14,.82), rgba(8,20,14,.25)); }
+.cinema-shade { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(6,22,16,.88) 0%, rgba(8,20,14,.45) 58%, rgba(193,18,31,.18) 100%); }
 .cinema-copy { position: relative; z-index: 2; max-width: 1180px; width: 88%; margin: 0 auto; padding-top: 110px; color: #fff; }
-.cinema-copy h1 { font-size: 48px; margin: 8px 0 12px; }
-.cinema-copy p { max-width: 520px; color: #d7e8df; }
+.cinema-copy h1 { font-size: 46px; margin: 8px 0 12px; max-width: 16ch; }
+.cinema-copy p { max-width: 540px; color: #d7e8df; }
+.hero-en { font-size: 13px !important; letter-spacing: .3px; color: #e8d48a !important; }
 .cinema-nav { position: absolute; inset-inline: 4%; top: 46%; display: flex; justify-content: space-between; z-index: 3; }
 .cinema-nav button { width: 42px; height: 42px; border-radius: 50%; background: #ffffff22; color: #fff; }
 .cinema-dots { position: absolute; bottom: 22px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; z-index: 3; }
@@ -382,6 +393,26 @@ footer a { color: #66776f; }
 .pyr-row span, .pyr-row.small span { background: #1a3a2b; border-radius: 10px; padding: 8px; font-size: 12px; }
 .pyr-row.small { grid-template-columns: repeat(4, 1fr); }
 .champion-chip { margin-top: 12px; background: #fff8e6; border-radius: 12px; padding: 10px 12px; font-weight: 800; }
+.values-strip { max-width: 1180px; width: 88%; margin: 28px auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.value-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.value-card::before { content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(var(--green), var(--gold), var(--red)); }
+.value-card h3 { margin: 6px 0 2px; font-family: 'Amiri', serif; }
+.value-card small { color: var(--gold-deep); font-weight: 700; letter-spacing: .3px; }
+.value-card p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.crescent { color: var(--gold); font-size: 18px; }
+.heritage-banner {
+  max-width: 1180px; width: 88%; margin: 8px auto 36px;
+  display: flex; align-items: center; gap: 16px;
+  background: linear-gradient(120deg, #102018, #163526);
+  color: #eef6f1; border-radius: 22px; padding: 18px 20px;
+  border: 1px solid #2a4a3a;
+}
+.heritage-banner p { margin: 4px 0 0; color: #b7cfc3; font-size: 13px; }
+.heritage-banner .secondary { margin-inline-start: auto; }
+.ghost { background: transparent; color: var(--green); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; font-weight: 800; }
+.site-foot { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 18px; align-items: start; }
+.site-foot b { display: block; color: var(--ink); margin-bottom: 4px; }
+.motto { color: var(--gold-deep); font-family: 'Amiri', serif; font-size: 15px; }
 .upcoming { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .up-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); }
 .up-card img { width: 100%; height: 140px; object-fit: cover; }
@@ -393,7 +424,8 @@ footer a { color: #66776f; }
 @media (max-width: 860px) {
   .cinema { height: 420px; }
   .cinema-copy h1 { font-size: 32px; }
-  .home-grid, .upcoming, .spotlight, .pyr-row.small { grid-template-columns: 1fr 1fr; }
+  .home-grid, .upcoming, .spotlight, .pyr-row.small, .values-strip, .site-foot { grid-template-columns: 1fr; }
+  .heritage-banner { flex-direction: column; align-items: stretch; }
 }
 
 @media (max-width: 860px) {
