@@ -18,4 +18,5 @@ describe('HTTP foundation', () => {
   it('rejects audit detail access without authentication', async () => { const app=buildApp(); const response=await app.inject({method:'GET',url:'/api/v1/admin/audit/00000000-0000-0000-0000-000000000000'}); expect(response.statusCode).toBe(401); await app.close(); });
   it('validates public season identifiers', async () => { const app=buildApp(); const response=await app.inject({method:'GET',url:'/api/v1/public/seasons/not-a-uuid'}); expect(response.statusCode).toBe(400); await app.close(); });
   it('protects announcement administration', async () => { const app=buildApp(); const response=await app.inject({method:'GET',url:'/api/v1/admin/announcements'}); expect(response.statusCode).toBe(401); await app.close(); });
+  it('protects enrollment card issuance', async () => { const app=buildApp(); const response=await app.inject({method:'GET',url:'/api/v1/admin/cards'}); expect(response.statusCode).toBe(401); await app.close(); });
 });

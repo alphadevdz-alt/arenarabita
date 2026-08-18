@@ -271,6 +271,24 @@ try {
     [competitionIds[12] ?? competitionIds[0], playerIds[1], JSON.stringify({ place: 1, medal: 'ذهب', score: '58-51', note: 'نهائي السلة إناث' })]
   );
 
+  const footballId = competitionIds[9];
+  for (const participantId of participantIds) {
+    await pool.query(
+      `INSERT INTO competition_entries(competition_id,participant_id,confirmation_status)
+       VALUES ($1,$2,'CONFIRMED')
+       ON CONFLICT (competition_id,participant_id) DO UPDATE SET confirmation_status='CONFIRMED'`,
+      [footballId, participantId]
+    );
+  }
+  await pool.query(
+    `INSERT INTO institution_competitions(institution_id,competition_id,status,coach_name,representative_name,decided_by,decided_at)
+     VALUES ($1,$2,'ACCEPTED','نور الدين بلقاسم','سمير عبّاس',$3,now())
+     ON CONFLICT (institution_id,competition_id) DO UPDATE
+       SET status='ACCEPTED', coach_name=EXCLUDED.coach_name, representative_name=EXCLUDED.representative_name`,
+    [institution.rows[0].id, footballId, userIds['demo.association.admin']]
+  );
+  console.log('institution accepted for football with confirmed student files');
+
   await pool.query(
     'INSERT INTO audit_logs(actor_user_id,action,entity_type,result_status,metadata) VALUES($1,$2,$3,$4,$5)',
     [userIds['demo.national'], 'SIMULATION_SEED', 'SYSTEM', 'SUCCESS', JSON.stringify({ wilaya: 19 })]

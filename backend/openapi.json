@@ -40,6 +40,8 @@
     "/api/v1/public/competitions/{id}":{"get":{"summary":"Read an approved public competition","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Competition detail"}}}},
     "/api/v1/admin/announcements":{"get":{"security":[{"bearerAuth":[]}],"summary":"List announcements","responses":{"200":{"description":"Announcement list"}}},"post":{"security":[{"bearerAuth":[]}],"summary":"Publish an announcement","responses":{"201":{"description":"Created"}}}},
     "/api/v1/admin/entries":{"get":{"security":[{"bearerAuth":[]}],"summary":"List competition entries","responses":{"200":{"description":"Entry list"}}},"post":{"security":[{"bearerAuth":[]}],"summary":"Register a participant in a competition","responses":{"201":{"description":"Created"}}}},
+    "/api/v1/admin/cards":{"get":{"security":[{"bearerAuth":[]}],"summary":"List issued enrollment cards","responses":{"200":{"description":"Card list"}}}},
+    "/api/v1/admin/cards/issue":{"post":{"security":[{"bearerAuth":[]}],"summary":"Issue print-ready student, coach and representative cards after association acceptance","responses":{"201":{"description":"Issued"}}}},
     "/api/v1/admin/licenses/applications":{"post":{"security":[{"bearerAuth":[]}],"summary":"Create a license application","responses":{"201":{"description":"Created"}}}},
     "/api/v1/auth/change-password":{"post":{"security":[{"bearerAuth":[]}],"summary":"Change the current password","responses":{"200":{"description":"Updated"}}}}
   }

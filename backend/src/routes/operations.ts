@@ -112,7 +112,7 @@ export async function registerOperationRoutes(app: FastifyInstance) {
     const values: unknown[] = [];
     const where = ['e.archived_at IS NULL'];
     if (query.competitionId) { values.push(query.competitionId); where.push(`e.competition_id=$${values.length}`); }
-    const result = await pool.query(`SELECT e.id,e.competition_id,e.participant_id,e.status,c.name AS competition_name,p.given_name,p.family_name FROM competition_entries e JOIN competitions c ON c.id=e.competition_id JOIN participants p ON p.id=e.participant_id WHERE ${where.join(' AND ')} ORDER BY e.created_at DESC`, values);
+    const result = await pool.query(`SELECT e.id,e.competition_id,e.participant_id,e.status,e.confirmation_status,c.name AS competition_name,p.given_name,p.family_name,p.institution_id,i.name AS institution_name FROM competition_entries e JOIN competitions c ON c.id=e.competition_id JOIN participants p ON p.id=e.participant_id JOIN educational_institutions i ON i.id=p.institution_id WHERE ${where.join(' AND ')} ORDER BY e.created_at DESC`, values);
     return { data: result.rows };
   });
 

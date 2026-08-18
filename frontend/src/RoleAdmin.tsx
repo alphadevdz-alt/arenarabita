@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FileCheck2, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
 import { RoleHome, menusFor, primaryRole, ROLE_META } from './RoleCockpit';
+import { EnrollmentDesk } from './EnrollmentCards';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 
@@ -139,6 +140,7 @@ function AdminWorkspace({ token, user }: { token: string; user: any }) {
       <div className="workspace">
         {tab === 'dashboard' && <RoleHome token={token} role={role} user={user} />}
         {tab === 'verify' && <StaffVerify token={token} />}
+        {tab === 'cards' && <EnrollmentDesk token={token} canIssue={association || roles.includes('SYSTEM_ADMINISTRATOR')} />}
         {tab === 'approvals' && <Approvals token={token} />}
         {tab === 'organizations' && <Organizations token={token} />}
         {tab === 'institutions' && <Collection token={token} path="/api/v1/admin/institutions" title="المؤسسات التعليمية" fields={['name', 'code', 'organization_name', 'sport_discipline', 'sport_category', 'status']} />}
