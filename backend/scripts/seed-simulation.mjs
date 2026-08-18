@@ -89,7 +89,12 @@ try {
       [seasonId, name, status, imageUrl, summary, sportKind, discipline]
     );
     const id = row.rows[0]?.id ?? (await pool.query('SELECT id FROM competitions WHERE name=$1', [name])).rows[0].id;
-    await pool.query('UPDATE competitions SET image_url=$2,summary=$3,status=$4::competition_status,sport_kind=$5,discipline=$6 WHERE id=$1', [id, imageUrl, summary, status, sportKind, discipline]);
+    const gender = name.includes('إناث') ? 'FEMALE' : sportKind === 'TEAM' ? 'MALE' : 'MIXED';
+    const age = sportKind === 'TEAM' ? 'U15' : 'U17';
+    const rules = sportKind === 'TEAM'
+      ? 'فريق واحد لكل مؤسسة. تحديد الجنس والفئة إلزامي. السن وفق شهادة الميلاد.'
+      : 'مشاركة فردية. فئة عمرية واحدة لكل سباق. يُعتمد الترتيب الرسمي للجنة.';
+    await pool.query('UPDATE competitions SET image_url=$2,summary=$3,status=$4::competition_status,sport_kind=$5,discipline=$6,age_category=$7,gender_category=$8,rules_text=$9 WHERE id=$1', [id, imageUrl, summary, status, sportKind, discipline, age, gender, rules]);
     competitionIds.push(id);
     console.log(`competition ${name} ${sportKind} ${status}`);
   }

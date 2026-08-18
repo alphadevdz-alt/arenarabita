@@ -258,7 +258,7 @@ function Organizations({ token }: { token: string }) {
 function Competitions({ token, national }: { token: string; national: boolean }) {
   const [seasons, setSeasons] = useState<any[]>([]);
   const [rows, setRows] = useState<any[]>([]);
-  const [form, setForm] = useState({ seasonId: '', name: '' });
+  const [form, setForm] = useState({ seasonId: '', name: '', sportKind: 'TEAM', ageCategory: 'U15', genderCategory: 'MALE', rulesText: 'يُقبل فريق واحد لكل مؤسسة. السن حسب شهادة الميلاد. لا يُسمح بمزج الفئات.' });
   const [message, setMessage] = useState('');
   function load() {
     api('/api/v1/admin/competitions', token).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
@@ -284,6 +284,24 @@ function Competitions({ token, national }: { token: string; national: boolean })
             {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <input placeholder="اسم المنافسة" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <select value={form.sportKind} onChange={(e) => setForm({ ...form, sportKind: e.target.value })}>
+            <option value="TEAM">جماعية</option>
+            <option value="INDIVIDUAL">فردية</option>
+          </select>
+          <select value={form.ageCategory} onChange={(e) => setForm({ ...form, ageCategory: e.target.value })}>
+            <option value="U11">أقل من 11</option>
+            <option value="U13">أقل من 13</option>
+            <option value="U15">أقل من 15</option>
+            <option value="U17">أقل من 17</option>
+            <option value="U19">أقل من 19</option>
+            <option value="OPEN">مفتوحة</option>
+          </select>
+          <select value={form.genderCategory} onChange={(e) => setForm({ ...form, genderCategory: e.target.value })}>
+            <option value="MALE">ذكور</option>
+            <option value="FEMALE">إناث</option>
+            <option value="MIXED">مختلط</option>
+          </select>
+          <input placeholder="قواعد مختصرة" value={form.rulesText} onChange={(e) => setForm({ ...form, rulesText: e.target.value })} />
           <button className="primary">إنشاء</button>
         </form>
       )}
@@ -293,7 +311,7 @@ function Competitions({ token, national }: { token: string; national: boolean })
           <div className="data-row" key={row.id}>
             <span>{row.name}</span>
             <span>{row.season_name}</span>
-            <small>{row.status}</small>
+            <small>{row.status} · {row.age_category ?? '—'} · {row.gender_category ?? '—'}</small>
             {national && competitionNext[row.status] && <button className="secondary" onClick={() => transition(row.id, row.status)}>{competitionNext[row.status]}</button>}
           </div>
         ))}

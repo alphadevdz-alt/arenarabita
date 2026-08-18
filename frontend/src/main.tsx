@@ -74,7 +74,7 @@ function App() {
             <h1>تحقق من الترخيص الرياضي</h1>
             <p>أدخل مرجع التحقق العام لعرض الحالة المعتمدة فقط، دون كشف المعرّفات الداخلية.</p>
             <form onSubmit={verify} className="verify-form">
-              <input value={reference} onChange={(e) => setReference(e.target.value)} minLength={20} required placeholder="مرجع التحقق" />
+              <input value={reference} onChange={(e) => setReference(e.target.value)} minLength={12} required placeholder="رمز الترخيص أو رمز انخراط مدرب/تلميذ" />
               <button className="primary"><Search size={18} /> تحقق الآن</button>
             </form>
             {error && <div className="alert error">{error}</div>}
@@ -82,8 +82,9 @@ function App() {
               <div className="result-card">
                 <CheckCircle2 size={30} />
                 <div>
-                  <strong>تم التحقق من الترخيص</strong>
+                  <strong>{result.role ? `تم التحقق من انخراط ${result.role === 'COACH' ? 'مدرب' : result.role === 'STUDENT' ? 'تلميذ' : result.role}` : 'تم التحقق من الترخيص'}</strong>
                   <span>الحالة: {result.status}</span>
+                  {result.institutionName && <small>المؤسسة: {result.institutionName}</small>}
                   {result.issuedAt && <small>تاريخ الإصدار: {new Date(result.issuedAt).toLocaleDateString('ar-DZ')}</small>}
                   {result.expiresAt && <small>تاريخ الانتهاء: {new Date(result.expiresAt).toLocaleDateString('ar-DZ')}</small>}
                 </div>
@@ -127,9 +128,9 @@ function CompetitionsListing() {
               {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box"><Trophy /></div>}
               <div>
                 <h3>{row.name}</h3>
-                <p>{row.summary}</p>
+                <p>{row.summary}{row.rules_text ? ` — ${row.rules_text}` : ''}</p>
               </div>
-              <span className="badge">{labels[row.sport_kind] ?? ''} · {labels[row.status] ?? row.status}</span>
+              <span className="badge">{labels[row.sport_kind] ?? ''} · {row.age_category ?? ''} · {row.gender_category === 'MALE' ? 'ذكور' : row.gender_category === 'FEMALE' ? 'إناث' : row.gender_category === 'MIXED' ? 'مختلط' : ''} · {labels[row.status] ?? row.status}</span>
             </article>
           ))}
         </div>
@@ -188,53 +189,28 @@ function InstitutionRegister() {
   const [wilayas, setWilayas] = useState<any[]>([]);
   const [dairas, setDairas] = useState<any[]>([]);
   const [communes, setCommunes] = useState<any[]>([]);
-  const [schools, setSchools] = useState<any[]>([]);
-  const [form, setForm] = useState({ username: '', password: '', displayName: '', institutionName: '', institutionCode: '', wilayaId: '', dairaId: '', communeId: '', schoolId: '' });
-  const [filters, setFilters] = useState({ daira: '', commune: '', school: '' });
+  const [form, setForm] = useState({ username: '', password: '', displayName: '', institutionName: '', wilayaId: '', dairaId: '', communeId: '' });
   const [message, setMessage] = useState('');
+  const [codes, setCodes] = useState<{ coach?: string; student?: string } | null>(null);
   const [error, setError] = useState('');
-  const [counts, setCounts] = useState({ wilayas: 0, dairas: 0, communes: 0, schools: 0 });
 
   useEffect(() => {
-    fetch(`${API}/api/v1/public/geography/wilayas`).then((r) => r.json()).then((d) => {
-      setWilayas(d.data ?? []);
-      setCounts((c) => ({ ...c, wilayas: (d.data ?? []).length }));
-    }).catch(() => setWilayas([]));
+    fetch(`${API}/api/v1/public/geography/wilayas`).then((r) => r.json()).then((d) => setWilayas(d.data ?? [])).catch(() => setWilayas([]));
   }, []);
-
   useEffect(() => {
-    if (!form.wilayaId) { setDairas([]); setCommunes([]); setSchools([]); return; }
-    fetch(`${API}/api/v1/public/geography/wilayas/${form.wilayaId}/dairas`).then((r) => r.json()).then((d) => {
-      setDairas(d.data ?? []);
-      setCounts((c) => ({ ...c, dairas: (d.data ?? []).length }));
-    }).catch(() => setDairas([]));
+    if (!form.wilayaId) { setDairas([]); setCommunes([]); return; }
+    fetch(`${API}/api/v1/public/geography/wilayas/${form.wilayaId}/dairas`).then((r) => r.json()).then((d) => setDairas(d.data ?? [])).catch(() => setDairas([]));
   }, [form.wilayaId]);
-
   useEffect(() => {
-    if (!form.dairaId) { setCommunes([]); setSchools([]); return; }
-    fetch(`${API}/api/v1/public/geography/dairas/${form.dairaId}/communes`).then((r) => r.json()).then((d) => {
-      setCommunes(d.data ?? []);
-      setCounts((c) => ({ ...c, communes: (d.data ?? []).length }));
-    }).catch(() => setCommunes([]));
+    if (!form.dairaId) { setCommunes([]); return; }
+    fetch(`${API}/api/v1/public/geography/dairas/${form.dairaId}/communes`).then((r) => r.json()).then((d) => setCommunes(d.data ?? [])).catch(() => setCommunes([]));
   }, [form.dairaId]);
-
-  useEffect(() => {
-    if (!form.wilayaId || !form.communeId) { setSchools([]); return; }
-    fetch(`${API}/api/v1/public/geography/schools?wilayaId=${form.wilayaId}&communeId=${form.communeId}&pageSize=100`).then((r) => r.json()).then((d) => {
-      setSchools(d.data ?? []);
-      setCounts((c) => ({ ...c, schools: (d.data ?? []).length }));
-    }).catch(() => setSchools([]));
-  }, [form.wilayaId, form.communeId]);
-
-  function match(row: any, q: string, keys: string[]) {
-    if (!q.trim()) return true;
-    return keys.some((key) => String(row[key] ?? '').includes(q.trim()));
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setMessage('');
+    setCodes(null);
     const r = await fetch(`${API}/api/v1/auth/institution-register`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -243,70 +219,56 @@ function InstitutionRegister() {
         password: form.password,
         displayName: form.displayName,
         institutionName: form.institutionName,
-        institutionCode: form.institutionCode || `W${form.wilayaId}-C${form.communeId}`,
+        institutionCode: `W${form.wilayaId}-C${form.communeId}-${Date.now().toString().slice(-6)}`,
         wilayaId: Number(form.wilayaId),
         dairaId: Number(form.dairaId)
       })
     });
     if (!r.ok) { setError('تعذر تسجيل المؤسسة. تحقق من الولاية والدائرة والبلدية والرابطة الولائية.'); return; }
-    setMessage('تم إرسال الطلب. بانتظار موافقة الرابطة الولائية.');
+    const data = await r.json();
+    setMessage('تم إرسال الطلب. احتفظ برمزي التحقق أدناه حتى تعتمد الرابطة الاسم ضمن قائمة المؤسسات.');
+    setCodes(data.enrollmentCodes ?? null);
   }
 
   return (
     <section className="login-page">
       <div className="login-card">
-        <div className="eyebrow"><Users size={18} /> دليل GeoAlgeria الوطني</div>
+        <div className="eyebrow"><Users size={18} /> دليل الولايات والدوائر والبلديات</div>
         <h1>انخراط مؤسسة</h1>
-        <p>اختر بالترتيب: الولاية، ثم الدائرة، ثم البلدية، ثم المؤسسة إن وُجدت في الدليل.</p>
-        <small>{counts.wilayas} ولاية محمّلة في القاعدة · الدوائر والبلديات تُعرض حسب اختيارك</small>
+        <p>اختر الولاية ثم الدائرة ثم البلدية، ثم سمِّ مؤسستك كما تريد. الاسم يُعتمد لاحقاً ضمن اختيارات المؤسسات.</p>
         <form onSubmit={submit}>
-          <label>1 — الولاية
-            <select value={form.wilayaId} onChange={(e) => setForm({ ...form, wilayaId: e.target.value, dairaId: '', communeId: '', schoolId: '', institutionName: '', institutionCode: '' })} required>
+          <label>الولاية
+            <select value={form.wilayaId} onChange={(e) => setForm({ ...form, wilayaId: e.target.value, dairaId: '', communeId: '' })} required>
               <option value="">اختر الولاية</option>
-              {wilayas.map((w) => <option key={w.id} value={w.id}>{w.ar_name || w.name} — {w.name}</option>)}
+              {wilayas.map((w) => <option key={w.id} value={w.id}>{w.ar_name || w.name}</option>)}
             </select>
           </label>
-          <label>بحث الدائرة<input value={filters.daira} onChange={(e) => setFilters({ ...filters, daira: e.target.value })} disabled={!form.wilayaId} placeholder="اسم الدائرة" /></label>
-          <label>2 — الدائرة
-            <select value={form.dairaId} onChange={(e) => setForm({ ...form, dairaId: e.target.value, communeId: '', schoolId: '', institutionName: '', institutionCode: '' })} required disabled={!form.wilayaId}>
-              <option value="">{form.wilayaId ? `اختر الدائرة (${dairas.length})` : 'اختر الولاية أولاً'}</option>
-              {dairas.filter((d) => match(d, filters.daira, ['name', 'ar_name'])).map((d) => <option key={d.id} value={d.id}>{d.ar_name || d.name} — {d.name}</option>)}
+          <label>الدائرة
+            <select value={form.dairaId} onChange={(e) => setForm({ ...form, dairaId: e.target.value, communeId: '' })} required disabled={!form.wilayaId}>
+              <option value="">{form.wilayaId ? 'اختر الدائرة' : 'اختر الولاية أولاً'}</option>
+              {dairas.map((d) => <option key={d.id} value={d.id}>{d.ar_name || d.name}</option>)}
             </select>
           </label>
-          <label>بحث البلدية<input value={filters.commune} onChange={(e) => setFilters({ ...filters, commune: e.target.value })} disabled={!form.dairaId} placeholder="اسم البلدية" /></label>
-          <label>3 — البلدية
-            <select value={form.communeId} onChange={(e) => setForm({ ...form, communeId: e.target.value, schoolId: '', institutionName: '', institutionCode: '' })} required disabled={!form.dairaId}>
-              <option value="">{form.dairaId ? `اختر البلدية (${communes.length})` : 'اختر الدائرة أولاً'}</option>
-              {communes.filter((c) => match(c, filters.commune, ['name', 'ar_name'])).map((c) => <option key={c.id} value={c.id}>{c.ar_name || c.name} — {c.name}</option>)}
+          <label>البلدية
+            <select value={form.communeId} onChange={(e) => setForm({ ...form, communeId: e.target.value })} required disabled={!form.dairaId}>
+              <option value="">{form.dairaId ? 'اختر البلدية' : 'اختر الدائرة أولاً'}</option>
+              {communes.map((c) => <option key={c.id} value={c.id}>{c.ar_name || c.name}</option>)}
             </select>
           </label>
-          <label>بحث المؤسسة<input value={filters.school} onChange={(e) => setFilters({ ...filters, school: e.target.value })} disabled={!form.communeId} placeholder="اسم المؤسسة" /></label>
-          <label>4 — المؤسسة {schools.length ? '' : '(إن وُجدت)'}
-            <select value={form.schoolId} onChange={(e) => {
-              const school = schools.find((s) => s.id === e.target.value);
-              setForm({
-                ...form,
-                schoolId: e.target.value,
-                institutionName: school ? (school.name_ar || school.name || school.name_fr) : form.institutionName,
-                institutionCode: school ? school.id : form.institutionCode
-              });
-            }} required={schools.length > 0} disabled={!form.communeId}>
-              <option value="">{!form.communeId ? 'اختر البلدية أولاً' : schools.length ? `اختر المؤسسة (${schools.length})` : 'لا توجد مؤسسة في الدليل لهذه البلدية — أدخل الاسم يدوياً'}</option>
-              {schools.filter((s) => match(s, filters.school, ['name', 'name_ar', 'name_fr'])).map((s) => <option key={s.id} value={s.id}>{(s.name_ar || s.name || s.name_fr)} — {s.cycle || 'مؤسسة'}</option>)}
-            </select>
-          </label>
-          {schools.length === 0 && form.communeId && (
-            <>
-              <label>اسم المؤسسة<input value={form.institutionName} onChange={(e) => setForm({ ...form, institutionName: e.target.value })} required /></label>
-              <label>رمز المؤسسة<input value={form.institutionCode} onChange={(e) => setForm({ ...form, institutionCode: e.target.value })} required /></label>
-            </>
-          )}
+          <label>اسم المؤسسة كما تريد اعتماده<input value={form.institutionName} onChange={(e) => setForm({ ...form, institutionName: e.target.value })} required placeholder="تسمية حرة للمؤسسة المنخرطة" /></label>
           <label>اسم المستخدم<input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></label>
           <label>كلمة المرور<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={12} /></label>
-          <label>الاسم المعروض<input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required /></label>
-          {form.institutionName && <p>المسار: ولاية {form.wilayaId} → دائرة {form.dairaId} → بلدية {form.communeId} → <b>{form.institutionName}</b></p>}
+          <label>الاسم المعروض للمسؤول<input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required /></label>
           {error && <div className="alert error">{error}</div>}
           {message && <div className="result-card"><div><strong>{message}</strong></div></div>}
+          {codes && (
+            <div className="result-card">
+              <div>
+                <strong>رمز تحقق المدرب</strong><span>{codes.coach}</span>
+                <strong>رمز تحقق التلميذ</strong><span>{codes.student}</span>
+              </div>
+            </div>
+          )}
           <button className="primary">إرسال طلب الانخراط</button>
         </form>
       </div>

@@ -9,7 +9,7 @@ import { encodePassword } from '../services/auth.js';
 const seasonInput = z.object({ name: z.string().min(2).max(200), startDate: z.coerce.date(), endDate: z.coerce.date() }).refine((v) => v.endDate >= v.startDate, 'endDate must be after startDate');
 const organizationInput = z.object({ name: z.string().min(2).max(200), code: z.string().max(50).optional() });
 const participantInput = z.object({ institutionId: z.string().uuid(), givenName: z.string().min(1).max(100), familyName: z.string().min(1).max(100), dateOfBirth: z.coerce.date().optional() });
-const competitionInput = z.object({ seasonId: z.string().uuid(), name: z.string().min(2).max(200), startDate: z.coerce.date().optional(), endDate: z.coerce.date().optional() });
+const competitionInput = z.object({ seasonId: z.string().uuid(), name: z.string().min(2).max(200), startDate: z.coerce.date().optional(), endDate: z.coerce.date().optional(), sportKind: z.enum(['INDIVIDUAL','TEAM']).optional(), ageCategory: z.enum(['U11','U13','U15','U17','U19','OPEN']).optional(), genderCategory: z.enum(['MALE','FEMALE','MIXED']).optional(), rulesText: z.string().max(2000).optional() });
 const licenseInput = z.object({ participantId: z.string().uuid(), expiresAt: z.coerce.date().optional() });
 const resultInput = z.object({ participantId: z.string().uuid().optional(), resultData: z.record(z.unknown()) });
 
