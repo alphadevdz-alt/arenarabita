@@ -29,9 +29,13 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     if (!path.startsWith('/api/v1/admin')) return;
     if (!requireAuth(req, reply)) return;
     if (path.endsWith('/me/permissions')) return;
-    const nationalOnly = /\/users(?:\/|$)|\/roles(?:\/|$)|\/permissions(?:\/|$)|\/audit(?:\/|$)|\/reports(?:\/|$)|\/licenses\/sync-expiry/.test(path);
+    const nationalOnly = /\/users(?:\/|$)|\/roles(?:\/|$)|\/permissions(?:\/|$)|\/audit(?:\/|$)|\/reports(?:\/|$)|\/licenses\/sync-expiry|\/announcements(?:\/|$)/.test(path);
     if (nationalOnly) { if (!hasRole(req, ['SYSTEM_ADMINISTRATOR', 'NATIONAL_ADMINISTRATOR'])) { await recordAccessDenied(req, 'NATIONAL_SCOPE_DENIED'); void reply.code(403).send({ error: 'forbidden' }); } return; }
-    if (/\/seasons(?:\/|$)|\/competitions(?:\/|$)/.test(path)) { if (scopeKind(req) !== 'national') { await recordAccessDenied(req, 'NATIONAL_SCOPE_DENIED', 'GLOBAL_RESOURCE'); void reply.code(403).send({ error: 'forbidden' }); } return; }
+    if (/\/seasons(?:\/|$)|\/competitions(?:\/|$)/.test(path)) {
+      if (request.method !== 'GET' && scopeKind(req) !== 'national') { await recordAccessDenied(req, 'NATIONAL_SCOPE_DENIED', 'GLOBAL_RESOURCE'); void reply.code(403).send({ error: 'forbidden' }); }
+      return;
+    }
+    if (/\/entries(?:\/|$)/.test(path)) { await requirePolicy(req, reply, { resource: 'participant' }); return; }
     let resource: 'organization'|'institution'|'participant'|'license'|'result'|undefined;
     if (/\/organizations(?:\/|$)/.test(path)) resource = 'organization';
     else if (/\/(?:educational_)?institutions(?:\/|$)/.test(path)) resource = 'institution';

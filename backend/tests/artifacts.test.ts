@@ -13,6 +13,13 @@ describe('delivery artifacts', () => {
     expect(document.paths['/api/v1/auth/institution-register']).toBeDefined();
     expect(document.paths['/api/v1/association/institution-registrations/{userId}/reject']).toBeDefined();
     expect(document.paths['/api/v1/public/licenses/verify/{reference}']).toBeDefined();
+    expect(document.paths['/api/v1/public/announcements']).toBeDefined();
+    expect(document.paths['/api/v1/admin/entries']).toBeDefined();
+  });
+  it('defines announcements and competition entries', async () => {
+    const migration = await readFile(resolve(process.cwd(), '../database/migrations/009_announcements_and_entries.sql'), 'utf8');
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS announcements');
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS competition_entries');
   });
   it('keeps demo account seeding idempotent', async () => {
     const source = await readFile(resolve(process.cwd(), 'scripts/create-demo-accounts.mjs'), 'utf8');

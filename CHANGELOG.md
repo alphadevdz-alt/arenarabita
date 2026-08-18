@@ -76,6 +76,10 @@
 
 ## 2026-08-18
 
+- Completed remaining operational modules: public announcements, competition entries, license applications, public season/competition details, user/account, results, and lifecycle transitions in the administration portal.
+
+## 2026-08-18 — workspace
+
 - Completed the administrative workspace: dashboard, institutions, participants, seasons, competitions, licenses, audit, and reports with role-aware tabs.
 - Added public institution registration and association approval/rejection queue.
 - Allowed scoped participant creation and association license issuance.

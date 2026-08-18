@@ -5,7 +5,7 @@ import { RoleAdmin } from './RoleAdmin';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-type View = 'home' | 'seasons' | 'competitions' | 'results' | 'verify' | 'register' | 'admin';
+type View = 'home' | 'seasons' | 'competitions' | 'results' | 'announcements' | 'help' | 'verify' | 'register' | 'admin';
 
 function App() {
   const [view, setView] = useState<View>('home');
@@ -51,6 +51,18 @@ function App() {
         {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
         {view === 'competitions' && <Listing title="المنافسات" endpoint="competitions" icon={<Trophy />} />}
         {view === 'results' && <Listing title="النتائج المنشورة" endpoint="results" icon={<BarChart3 />} />}
+        {view === 'announcements' && <Listing title="الإعلانات الرسمية" endpoint="announcements" icon={<FileCheck2 />} />}
+        {view === 'help' && (
+          <section className="listing">
+            <div className="eyebrow">المساعدة</div>
+            <h1>دليل الاستخدام</h1>
+            <div className="panel">
+              <p>تحقق من الترخيص عبر المرجع العام دون عرض المعرّفات الداخلية.</p>
+              <p>تسجّل المؤسسات طلب انخراط يُراجع من الرابطة الولائية قبل تفعيل الحساب.</p>
+              <p>الإدارة تستخدم صلاحيات النطاق: وطني، رابطة، دائرة، أو مؤسسة.</p>
+            </div>
+          </section>
+        )}
         {view === 'verify' && (
           <section className="verify-page">
             <div className="eyebrow"><QrCode size={18} /> خدمة عامة</div>
@@ -127,8 +139,8 @@ function Listing({ title, endpoint, icon }: { title: string; endpoint: string; i
           <article className="item-card" key={row.id ?? i}>
             <div className="icon-box">{icon}</div>
             <div>
-              <h3>{row.name ?? row.competition_name ?? 'نتيجة منشورة'}</h3>
-              <p>معلومات منشورة ومعتمدة من الإدارة المختصة</p>
+              <h3>{row.title ?? row.name ?? row.competition_name ?? 'نتيجة منشورة'}</h3>
+              <p>{row.body ?? 'معلومات منشورة ومعتمدة من الإدارة المختصة'}</p>
             </div>
             <span className="badge">{row.status ?? 'منشور'}</span>
           </article>

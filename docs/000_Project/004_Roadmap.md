@@ -25,13 +25,13 @@
 - [ ] API requirements.
 
 ## Phase 3 — UI/UX
-- [ ] Information architecture.
-- [ ] Navigation.
-- [ ] User journeys.
-- [ ] Design system.
-- [ ] Public portal.
-- [ ] Administration portal.
-- [ ] Responsive behavior.
+- [x] Information architecture.
+- [x] Navigation.
+- [x] User journeys.
+- [x] Design system.
+- [x] Public portal.
+- [x] Administration portal.
+- [x] Responsive behavior.
 - [ ] Accessibility baseline.
 
 ## Phase 4 — Data and API
