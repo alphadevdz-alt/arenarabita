@@ -41,4 +41,11 @@ describe('delivery artifacts', () => {
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS communes');
     expect(importer).toContain('Imported');
   });
+  it('imports GeoAlgeria schools and administrative divisions', async () => {
+    const migration = await readFile(resolve(process.cwd(), '../database/migrations/013_geoalgeria_schools.sql'), 'utf8');
+    const importer = await readFile(resolve(process.cwd(), 'scripts/import-geoalgeria.mjs'), 'utf8');
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS school_directory');
+    expect(importer).toContain('@geoalgeria/ecoles');
+    expect(importer).toContain('geoalgeria/data/wilayas.json');
+  });
 });

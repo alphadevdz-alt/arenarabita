@@ -70,6 +70,8 @@ Demo accounts (local simulation only):
 
 Simulation seed: `cd backend && npm run seed:simulation` after migrations. Embedded PostgreSQL: `npm run pg:embedded`.
 
+National geography and school directory come from [GeoAlgeria](https://github.com/yasserstudio/geoalgeria) (`geoalgeria` + `@geoalgeria/ecoles@2.1.0`, MIT). Import with `npm run import:geoalgeria`.
+
 Validation commands:
 
 ```powershell

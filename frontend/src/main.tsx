@@ -257,7 +257,8 @@ function Help() {
 function InstitutionRegister() {
   const [wilayas, setWilayas] = useState<any[]>([]);
   const [dairas, setDairas] = useState<any[]>([]);
-  const [form, setForm] = useState({ username: '', password: '', displayName: '', institutionName: '', institutionCode: '', wilayaId: '', dairaId: '' });
+  const [schools, setSchools] = useState<any[]>([]);
+  const [form, setForm] = useState({ username: '', password: '', displayName: '', institutionName: '', institutionCode: '', wilayaId: '', dairaId: '', schoolId: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   useEffect(() => {
@@ -266,6 +267,7 @@ function InstitutionRegister() {
   useEffect(() => {
     if (!form.wilayaId) { setDairas([]); return; }
     fetch(`${API}/api/v1/public/geography/wilayas/${form.wilayaId}/dairas`).then((r) => r.json()).then((d) => setDairas(d.data ?? [])).catch(() => setDairas([]));
+    fetch(`${API}/api/v1/public/geography/schools?wilayaId=${form.wilayaId}&pageSize=50`).then((r) => r.json()).then((d) => setSchools(d.data ?? [])).catch(() => setSchools([]));
   }, [form.wilayaId]);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -289,6 +291,15 @@ function InstitutionRegister() {
           <label>اسم المستخدم<input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></label>
           <label>كلمة المرور<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={12} /></label>
           <label>الاسم المعروض<input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required /></label>
+          <label>مدرسة من الدليل الوطني
+            <select value={form.schoolId} onChange={(e) => {
+              const school = schools.find((s) => s.id === e.target.value);
+              setForm({ ...form, schoolId: e.target.value, institutionName: school ? (school.name_ar || school.name || school.name_fr) : form.institutionName, institutionCode: school ? school.id : form.institutionCode });
+            }}>
+              <option value="">اختيار من GeoAlgeria (اختياري)</option>
+              {schools.map((s) => <option key={s.id} value={s.id}>{(s.name_ar || s.name || s.name_fr)} — {s.commune_name || ''} ({s.cycle || ''})</option>)}
+            </select>
+          </label>
           <label>اسم المؤسسة<input value={form.institutionName} onChange={(e) => setForm({ ...form, institutionName: e.target.value })} required /></label>
           <label>رمز المؤسسة<input value={form.institutionCode} onChange={(e) => setForm({ ...form, institutionCode: e.target.value })} required /></label>
           <label>الولاية
