@@ -7,3 +7,4 @@ coverage/
 *.log
 backend/var-demo-accounts.csv
 _incoming_geography_*/
+backend/.embedded-pg/

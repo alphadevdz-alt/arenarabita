@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { verifyLicense } from './services/verification.js';
 import { encodePassword, login, readSession, verifyPassword } from './services/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerOperationRoutes } from './routes/operations.js';
+import { registerCardRoutes, verifyEnrollmentCard } from './routes/cards.js';
 import { config } from './config.js';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -14,7 +16,7 @@ export function buildApp() {
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' }, requestIdHeader: 'x-request-id' });
   app.setErrorHandler((error, _request, reply) => { const err = error as { statusCode?: number; message?: string }; app.log.error(error); if (err.statusCode && err.statusCode < 500) return reply.code(err.statusCode).send({ error: 'request_error', message: err.message }); return reply.code(500).send({ error: 'internal_server_error' }); });
   app.register(helmet);
-  app.register(cors, { origin: config.frontendOrigin });
+  app.register(cors, { origin: true });
   app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
   app.get('/health', async () => ({ status: 'ok', service: 'nssms-api' }));
   app.get('/api/v1', async () => ({ name:'NSSMS API', version:'1.0.0', status:'active' }));
@@ -28,7 +30,7 @@ export function buildApp() {
     return result;
   });
   app.post('/api/v1/auth/institution-register', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const parsed = z.object({ username: z.string().min(3).max(100), password: z.string().min(12).max(200), displayName: z.string().min(2).max(200), institutionName: z.string().min(2).max(200), institutionCode: z.string().min(2).max(80), wilayaId: z.coerce.number().int().min(1).max(58), dairaId: z.coerce.number().int().nonnegative() }).safeParse(request.body);
+    const parsed = z.object({ username: z.string().min(3).max(100), password: z.string().min(12).max(200), displayName: z.string().min(2).max(200), institutionName: z.string().min(2).max(200), institutionCode: z.string().min(2).max(80), wilayaId: z.coerce.number().int().min(1).max(69), dairaId: z.coerce.number().int().nonnegative() }).safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: 'validation_error' });
     const { pool } = await import('./infrastructure/db.js');
     const { username, password, displayName, institutionName, institutionCode, wilayaId, dairaId } = parsed.data;
@@ -42,9 +44,18 @@ export function buildApp() {
       const institution = await client.query('INSERT INTO educational_institutions(organization_id,daira_id,name,code) VALUES($1,$2,$3,$4) ON CONFLICT(organization_id,code) DO UPDATE SET name=EXCLUDED.name,daira_id=EXCLUDED.daira_id RETURNING id', [organization.rows[0].id, dairaId, institutionName, institutionCode]);
       const user = await client.query("INSERT INTO users(username,display_name,password_hash,status,organization_id,institution_id,daira_id) VALUES($1,$2,$3,'PENDING',$4,$5,$6) RETURNING id,username,status", [username, displayName, encodePassword(password), organization.rows[0].id, institution.rows[0].id, dairaId]);
       await client.query("INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='MEMBER_INSTITUTION_USER' ON CONFLICT DO NOTHING", [user.rows[0].id]);
+      const { createHash, randomBytes } = await import('node:crypto');
+      const makeCode = (kind: string) => {
+        const raw = `NSSMS-${kind}-${randomBytes(8).toString('hex').toUpperCase()}`;
+        const hash = createHash('sha256').update(raw.toUpperCase()).digest('hex');
+        return { raw, hash };
+      };
+      const coach = makeCode('COACH');
+      const student = makeCode('STUD');
+      await client.query('INSERT INTO enrollment_codes(institution_id,role_kind,code_hash,label) VALUES($1,$2,$3,$4),($1,$5,$6,$7)', [institution.rows[0].id, 'COACH', coach.hash, 'رمز المدرب', 'STUDENT', student.hash, 'رمز التلميذ']);
       await client.query('INSERT INTO audit_logs(action,entity_type,entity_id,result_status,metadata) VALUES($1,$2,$3,$4,$5)', ['INSTITUTION_REGISTER','USER',user.rows[0].id,'PENDING',JSON.stringify({ wilayaId, dairaId, institutionId: institution.rows[0].id })]);
       await client.query('COMMIT');
-      return reply.code(201).send({ account: user.rows[0], approval: 'pending_association_review' });
+      return reply.code(201).send({ account: user.rows[0], approval: 'pending_association_review', enrollmentCodes: { coach: coach.raw, student: student.raw } });
     } catch (error: any) { await client.query('ROLLBACK'); if (error?.code === '23505') return reply.code(409).send({ error: 'username_or_institution_code_exists' }); throw error; } finally { client.release(); }
   });
   app.get('/api/v1/auth/me', async (request, reply) => {
@@ -89,24 +100,59 @@ export function buildApp() {
     if (!result.rowCount) return reply.code(404).send({ error: 'pending_registration_not_found' });
     await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status) VALUES($1,$2,$3,$4,$5)', [req.auth.userId, 'INSTITUTION_APPROVE', 'USER', userId.data, 'SUCCESS']); return { account: result.rows[0] };
   });
+  app.post('/api/v1/association/institution-registrations/:userId/reject', async (request, reply) => {
+    const req = request as import('./http/auth-guard.js').AuthenticatedRequest; const { requireAuth, hasPermission } = await import('./http/auth-guard.js');
+    if (!requireAuth(req, reply)) return; if (!req.auth.wilayaId || !(await hasPermission(req, 'institution.approve'))) return reply.code(403).send({ error: 'forbidden' });
+    const userId = z.string().uuid().safeParse((request.params as { userId: string }).userId); const parsed = z.object({ reason: z.string().min(3).max(500).optional() }).safeParse(request.body ?? {});
+    if (!userId.success || !parsed.success) return reply.code(400).send({ error: 'validation_error' });
+    const { pool } = await import('./infrastructure/db.js');
+    const result = await pool.query("UPDATE users u SET status='DISABLED',updated_at=now() FROM organizations o WHERE u.id=$1 AND u.organization_id=o.id AND o.wilaya_id=$2 AND u.status='PENDING' RETURNING u.id,u.username,u.status", [userId.data, req.auth.wilayaId]);
+    if (!result.rowCount) return reply.code(404).send({ error: 'pending_registration_not_found' });
+    await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status,metadata) VALUES($1,$2,$3,$4,$5,$6)', [req.auth.userId, 'INSTITUTION_REJECT', 'USER', userId.data, 'SUCCESS', JSON.stringify({ reason: parsed.data.reason ?? null })]);
+    return { account: result.rows[0] };
+  });
   app.post('/api/v1/auth/logout', async (request, reply) => { const session = readSession(request.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!session) return reply.code(401).send({ error: 'unauthorized' }); const { pool } = await import('./infrastructure/db.js'); await pool.query('INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, result_status) VALUES ($1,$2,$3,$4,$5)', [session.userId,'LOGOUT','AUTHENTICATION',session.userId,'SUCCESS']); return { success: true }; });
   app.post('/api/v1/auth/change-password', async (request, reply) => { const session=readSession(request.headers.authorization?.replace(/^Bearer\s+/i,'')); if(!session)return reply.code(401).send({error:'unauthorized'}); const parsed=z.object({currentPassword:z.string().min(12),newPassword:z.string().min(12).max(200)}).safeParse(request.body); if(!parsed.success)return reply.code(400).send({error:'validation_error'}); const {pool}=await import('./infrastructure/db.js'); const user=await pool.query('SELECT password_hash FROM users WHERE id=$1 AND status=\'ACTIVE\'',[session.userId]); if(!user.rowCount||!verifyPassword(parsed.data.currentPassword,user.rows[0].password_hash))return reply.code(401).send({error:'invalid_current_password'}); await pool.query('UPDATE users SET password_hash=$1,updated_at=now() WHERE id=$2',[encodePassword(parsed.data.newPassword),session.userId]); await pool.query('INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,result_status) VALUES($1,$2,$3,$4,$5)',[session.userId,'CHANGE_PASSWORD','AUTHENTICATION',session.userId,'SUCCESS']); return {success:true}; });
   void registerAdminRoutes(app);
-  app.get('/api/v1/public/licenses/verify/:reference', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+  void registerOperationRoutes(app);
+  void registerCardRoutes(app);
+  app.get('/api/v1/public/licenses/verify/:reference', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (_request, reply) => {
     reply.header('cache-control', 'no-store');
-    const parsed = z.object({ reference: z.string().min(20).max(200) }).safeParse(request.params);
+    return reply.code(401).send({ error: 'staff_only_verification' });
+  });
+  app.get('/api/v1/admin/verify/:reference', { config: { rateLimit: { max: 40, timeWindow: '1 minute' } } }, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    const session = readSession(request.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!session) return reply.code(401).send({ error: 'unauthorized' });
+    const parsed = z.object({ reference: z.string().min(12).max(200) }).safeParse(request.params);
     if (!parsed.success) return reply.code(400).send({ error: 'invalid_verification_reference' });
-    let verification;
-    try { verification = await verifyLicense(parsed.data.reference); } catch (error) { request.log.error(error); return reply.code(503).send({ error: 'verification_unavailable' }); }
-    if (!verification) return reply.code(404).send({ error: 'license_not_found' });
-    return { verified: true, ...verification };
+    const token = parsed.data.reference.trim().toUpperCase();
+    try {
+      const { createHash } = await import('node:crypto');
+      const { pool } = await import('./infrastructure/db.js');
+      const hash = createHash('sha256').update(token).digest('hex');
+      const card = await verifyEnrollmentCard(parsed.data.reference);
+      if (card) return card;
+      const enrollment = await pool.query("SELECT e.role_kind,e.label,e.status,i.name AS institution_name FROM enrollment_codes e JOIN educational_institutions i ON i.id=e.institution_id WHERE e.code_hash=$1 LIMIT 1", [hash]);
+      if (enrollment.rowCount) {
+        return { verified: true, role: enrollment.rows[0].role_kind, licenseKind: enrollment.rows[0].role_kind, label: enrollment.rows[0].label, status: enrollment.rows[0].status, institutionName: enrollment.rows[0].institution_name };
+      }
+      const verification = await verifyLicense(parsed.data.reference);
+      if (!verification) return reply.code(404).send({ error: 'license_not_found' });
+      return { verified: true, ...verification };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(503).send({ error: 'verification_unavailable' });
+    }
   });
   const publicPage = (request: any) => { const page = Math.max(1, Math.min(10000, Number(request.query?.page ?? 1))); const pageSize = Math.max(1, Math.min(100, Number(request.query?.pageSize ?? 25))); return { page, pageSize, offset:(page-1)*pageSize }; };
   app.get('/api/v1/public/seasons', async (request) => { const {page,pageSize,offset}=publicPage(request); const query=z.object({status:z.enum(['ACTIVE','CLOSED']).optional()}).parse(request.query); const values:any[]=[]; const where=["archived_at IS NULL"]; if(query.status){values.push(query.status);where.push(`status=$${values.length}`)} else where.push("status IN ('ACTIVE','CLOSED')"); values.push(pageSize,offset); const result = await (await import('./infrastructure/db.js')).pool.query(`SELECT id,name,start_date,end_date,status FROM seasons WHERE ${where.join(' AND ')} ORDER BY start_date DESC LIMIT $${values.length-1} OFFSET $${values.length}` ,values); return { data: result.rows, page, pageSize }; });
-  app.get('/api/v1/public/competitions', async (request) => { const {page,pageSize,offset}=publicPage(request); const query=z.object({seasonId:z.string().uuid().optional(),status:z.enum(['REGISTRATION','ACTIVE','RESULTS','CLOSED']).optional()}).parse(request.query); const values:any[]=[]; const where=['c.archived_at IS NULL','s.status IN (\'ACTIVE\',\'CLOSED\')']; if(query.seasonId){values.push(query.seasonId);where.push(`c.season_id=$${values.length}`)} if(query.status){values.push(query.status);where.push(`c.status=$${values.length}`)} else where.push("c.status IN ('REGISTRATION','ACTIVE','RESULTS','CLOSED')"); values.push(pageSize,offset); const result = await (await import('./infrastructure/db.js')).pool.query(`SELECT c.id,c.name,c.status,c.start_date,c.end_date,s.name AS season_name FROM competitions c JOIN seasons s ON s.id=c.season_id WHERE ${where.join(' AND ')} ORDER BY c.start_date DESC NULLS LAST LIMIT $${values.length-1} OFFSET $${values.length}` ,values); return { data: result.rows, page, pageSize }; });
+  app.get('/api/v1/public/competitions', async (request) => { const {page,pageSize,offset}=publicPage(request); const query=z.object({seasonId:z.string().uuid().optional(),status:z.enum(['REGISTRATION','ACTIVE','RESULTS','CLOSED']).optional(),sportKind:z.enum(['INDIVIDUAL','TEAM']).optional()}).parse(request.query); const values:any[]=[]; const where=['c.archived_at IS NULL','s.status IN (\'ACTIVE\',\'CLOSED\')']; if(query.seasonId){values.push(query.seasonId);where.push(`c.season_id=$${values.length}`)} if(query.status){values.push(query.status);where.push(`c.status=$${values.length}`)} else where.push("c.status IN ('REGISTRATION','ACTIVE','RESULTS','CLOSED')"); if(query.sportKind){values.push(query.sportKind);where.push(`c.sport_kind=$${values.length}`)} values.push(pageSize,offset); const result = await (await import('./infrastructure/db.js')).pool.query(`SELECT c.id,c.name,c.status,c.start_date,c.end_date,c.image_url,c.summary,c.sport_kind,c.discipline,c.age_category,c.gender_category,c.rules_text,s.name AS season_name FROM competitions c JOIN seasons s ON s.id=c.season_id WHERE ${where.join(' AND ')} ORDER BY c.sport_kind NULLS LAST,c.name LIMIT $${values.length-1} OFFSET $${values.length}` ,values); return { data: result.rows, page, pageSize }; });
   app.get('/api/v1/public/results', async (request) => { const {page,pageSize,offset}=publicPage(request); const query=z.object({competitionId:z.string().uuid().optional(),seasonId:z.string().uuid().optional()}).parse(request.query); const values:any[]=[]; const where=["r.status='ACTIVE'","c.status IN ('RESULTS','CLOSED')",'r.archived_at IS NULL']; if(query.competitionId){values.push(query.competitionId);where.push(`r.competition_id=$${values.length}`)} if(query.seasonId){values.push(query.seasonId);where.push(`c.season_id=$${values.length}`)} values.push(pageSize,offset); const result = await (await import('./infrastructure/db.js')).pool.query(`SELECT c.name AS competition_name,s.name AS season_name,r.created_at FROM results r JOIN competitions c ON c.id=r.competition_id JOIN seasons s ON s.id=c.season_id WHERE ${where.join(' AND ')} ORDER BY r.created_at DESC LIMIT $${values.length-1} OFFSET $${values.length}` ,values); return { data: result.rows, page, pageSize }; });
   app.get('/api/v1/public/geography/wilayas', async () => { const { pool } = await import('./infrastructure/db.js'); const result = await pool.query('SELECT id,name,ar_name FROM wilayas ORDER BY id'); return { data: result.rows }; });
-  app.get('/api/v1/public/geography/wilayas/:id/dairas', async (request, reply) => { const id=z.coerce.number().int().min(1).max(58).safeParse((request.params as {id:string}).id); if(!id.success)return reply.code(400).send({error:'validation_error'}); const { pool } = await import('./infrastructure/db.js'); const result = await pool.query('SELECT id,wilaya_id,name,ar_name FROM dairas WHERE wilaya_id=$1 ORDER BY name',[id.data]); return { data: result.rows }; });
+  app.get('/api/v1/public/geography/wilayas/:id/dairas', async (request, reply) => { const id=z.coerce.number().int().min(1).max(69).safeParse((request.params as {id:string}).id); if(!id.success)return reply.code(400).send({error:'validation_error'}); const { pool } = await import('./infrastructure/db.js'); const result = await pool.query('SELECT id,wilaya_id,name,ar_name FROM dairas WHERE wilaya_id=$1 ORDER BY name',[id.data]); return { data: result.rows }; });
+    app.get('/api/v1/public/geography/schools', async (request) => { const query=z.object({wilayaId:z.coerce.number().int().min(1).max(69).optional(),communeId:z.coerce.number().int().optional(),cycle:z.string().max(40).optional(),q:z.string().max(80).optional(),page:z.coerce.number().int().min(1).default(1),pageSize:z.coerce.number().int().min(1).max(100).default(50)}).parse(request.query); const values=[]; const where=['1=1']; if(query.wilayaId){values.push(query.wilayaId);where.push(`wilaya_id=$${values.length}`)} if(query.communeId){values.push(query.communeId);where.push(`(commune_code=$${values.length} OR translate(lower(coalesce(commune_name,'')),'éèêëàâäîïôöùûüç','eeeeaaaiioouuuc') LIKE '%'||translate(lower(coalesce((SELECT name FROM communes WHERE id=$${values.length}),'')),'éèêëàâäîïôöùûüç','eeeeaaaiioouuuc')||'%' OR commune_name ILIKE (SELECT ar_name FROM communes WHERE id=$${values.length}))`)} where.push('(coalesce(name,name_ar,name_fr) IS NOT NULL)'); if(query.cycle){values.push(query.cycle);where.push(`cycle=$${values.length}`)} if(query.q){values.push(`%${query.q}%`);where.push(`(name ILIKE $${values.length} OR name_ar ILIKE $${values.length} OR commune_name ILIKE $${values.length})`)} const offset=(query.page-1)*query.pageSize; values.push(query.pageSize,offset); const { pool } = await import('./infrastructure/db.js'); const result=await pool.query(`SELECT id,COALESCE(NULLIF(name_ar,''),NULLIF(name_fr,''),NULLIF(name,''),id) AS name,name_ar,name_fr,wilaya_id,commune_name,cycle,kind FROM school_directory WHERE ${where.join(' AND ')} ORDER BY name NULLS LAST LIMIT $${values.length-1} OFFSET $${values.length}`,values); return {data:result.rows,page:query.page,pageSize:query.pageSize}; });
+app.get('/api/v1/public/geography/wilayas/:id/communes', async (request, reply) => { const id=z.coerce.number().int().min(1).max(69).safeParse((request.params as {id:string}).id); if(!id.success)return reply.code(400).send({error:'validation_error'}); const { pool } = await import('./infrastructure/db.js'); const result = await pool.query('SELECT c.id,c.daira_id,c.wilaya_id,c.name,c.ar_name,d.name AS daira_name,d.ar_name AS daira_ar_name FROM communes c LEFT JOIN dairas d ON d.id=c.daira_id WHERE c.wilaya_id=$1 ORDER BY c.ar_name,c.name',[id.data]); return { data: result.rows }; });
   app.get('/api/v1/public/geography/dairas/:id/communes', async (request, reply) => { const id=z.coerce.number().int().nonnegative().safeParse((request.params as {id:string}).id); if(!id.success)return reply.code(400).send({error:'validation_error'}); const { pool } = await import('./infrastructure/db.js'); const result = await pool.query('SELECT id,daira_id,wilaya_id,name,ar_name FROM communes WHERE daira_id=$1 ORDER BY name',[id.data]); return { data: result.rows }; });
   return app;
 }

@@ -1,14 +1,250 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, BarChart3, CheckCircle2, FileCheck2, LayoutDashboard, QrCode, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
-import { RoleAdmin } from './RoleAdmin';
+import { Activity, FileCheck2, Trophy, Users } from 'lucide-react';
+import { HonorsBoard, PlayerCard, Scoreboard, TeamsBoard } from './PublicShowcase';
+import { HomeArena } from './HomeArena';
 import './styles.css';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-type View = 'home'|'seasons'|'competitions'|'results'|'verify'|'admin';
+const API = import.meta.env.VITE_API_URL ?? '';
+type View = 'home' | 'seasons' | 'competitions' | 'results' | 'teams' | 'honors' | 'player' | 'announcements' | 'help' | 'register';
 
-function App() { const [view,setView]=useState<View>('home'); const [reference,setReference]=useState(''); const [result,setResult]=useState<any>(null); const [error,setError]=useState(''); async function verify(e:React.FormEvent){e.preventDefault();setError('');setResult(null);try{const r=await fetch(`${API}/api/v1/public/licenses/verify/${encodeURIComponent(reference)}`);if(!r.ok)throw new Error('لم يتم العثور على ترخيص مطابق');setResult(await r.json())}catch(x){setError(x instanceof Error?x.message:'تعذر الاتصال بالخادم')}} const nav=[['home','الرئيسية'],['seasons','المواسم'],['competitions','المنافسات'],['results','النتائج'],['verify','تحقق من الترخيص']] as const; return <div dir="rtl" className="app"><header className="topbar"><div className="brand" onClick={()=>setView('home')}><span className="brand-mark">ن</span><span><b>NSSMS</b><small>النظام الوطني للرياضة المدرسية</small></span></div><nav>{nav.map(([key,label])=><button key={key} className={view===key?'active':''} onClick={()=>setView(key)}>{label}</button>)}</nav><button className="admin-link" onClick={()=>setView('admin')}><LayoutDashboard size={16}/> البوابة الإدارية</button></header><main>{view==='home'&&<Home onVerify={()=>setView('verify')} onAdmin={()=>setView('admin')}/>} {view==='seasons'&&<Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity/>}/>} {view==='competitions'&&<Listing title="المنافسات" endpoint="competitions" icon={<Trophy/>}/>} {view==='results'&&<Listing title="النتائج المنشورة" endpoint="results" icon={<BarChart3/>}/>} {view==='verify'&&<section className="verify-page"><div className="eyebrow"><QrCode size={18}/> خدمة عامة</div><h1>تحقق من الترخيص الرياضي</h1><p>أدخل مرجع التحقق لعرض المعلومات العامة المعتمدة فقط.</p><form onSubmit={verify} className="verify-form"><input value={reference} onChange={e=>setReference(e.target.value)} minLength={20} required placeholder="مرجع التحقق"/><button className="primary"><Search size={18}/> تحقق الآن</button></form>{error&&<div className="alert error">{error}</div>}{result&&<div className="result-card"><CheckCircle2 size={30}/><div><strong>تم التحقق من الترخيص</strong><span>الحالة: {result.status}</span>{result.issuedAt&&<small>تاريخ الإصدار: {new Date(result.issuedAt).toLocaleDateString('ar-DZ')}</small>}{result.expiresAt&&<small>تاريخ الانتهاء: {new Date(result.expiresAt).toLocaleDateString('ar-DZ')}</small>}</div></div>}</section>} {view==='admin'&&<RoleAdmin onBack={()=>setView('home')}/>}</main><footer><span>© NSSMS — منصة تجريبية محلية</span><span>الخصوصية والأمان · المساعدة</span></footer></div> }
-function Home({onVerify,onAdmin}:{onVerify:()=>void;onAdmin:()=>void}){return <><section className="hero"><div><div className="eyebrow"><ShieldCheck size={18}/> منصة وطنية رقمية</div><h1>إدارة الرياضة المدرسية<br/><em>بثقة وشفافية</em></h1><p>منصة موحدة لإدارة المواسم والمنافسات والتراخيص الرياضية مع حفظ السجل التاريخي وإتاحة التحقق العام.</p><div className="hero-actions"><button className="primary" onClick={onVerify}><QrCode size={18}/> تحقق من ترخيص</button><button className="secondary" onClick={onAdmin}>دخول الإدارة</button></div></div><div className="hero-visual"><div className="seal">ن<br/><small>NSSMS</small></div></div></section><section className="stats"><Stat icon={<Trophy/>} number="12" label="موسمًا رياضيًا"/><Stat icon={<Users/>} number="—" label="مؤسسة تعليمية"/><Stat icon={<FileCheck2/>} number="—" label="ترخيصًا رقميًا"/></section></>}
-function Stat({icon,number,label}:{icon:React.ReactNode;number:string;label:string}){return <div className="stat"><span>{icon}</span><div><b>{number}</b><small>{label}</small></div></div>}
-function Listing({title,endpoint,icon}:{title:string;endpoint:string;icon:React.ReactNode}){const [rows,setRows]=useState<any[]>([]);useEffect(()=>{fetch(`${API}/api/v1/public/${endpoint}`).then(r=>r.ok?r.json():{data:[]}).then(d=>setRows(d.data??[])).catch(()=>setRows([]))},[endpoint]);return <section className="listing"><div className="eyebrow">{icon} السجل العام</div><h1>{title}</h1><div className="cards">{rows.map((row,i)=><article className="item-card" key={row.id??i}><div className="icon-box">{icon}</div><div><h3>{row.name??row.competition_name??'نتيجة منشورة'}</h3><p>معلومات منشورة ومعتمدة من الإدارة المختصة</p></div><span className="badge">{row.status??'منشور'}</span></article>)}</div></section>}
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+function App() {
+  const [view, setView] = useState<View>('home');
+  const [playerId, setPlayerId] = useState('');
+  const nav = [
+    ['home', 'الرئيسية'],
+    ['seasons', 'المواسم'],
+    ['competitions', 'المنافسات'],
+    ['teams', 'الفرق'],
+    ['results', 'النتائج'],
+    ['honors', 'التتويج'],
+    ['announcements', 'الإعلانات'],
+    ['register', 'انخراط مؤسسة'],
+    ['help', 'مساعدة']
+  ] as const;
+
+  return (
+    <div dir="rtl" className="app">
+      <div className="official-bar" />
+      <header className="topbar">
+        <div className="brand" onClick={() => setView('home')}>
+          <span className="brand-mark">★</span>
+          <span>
+            <b>NSSMS</b>
+            <small>النظام الوطني لتسيير الرياضة المدرسية · الجزائر</small>
+          </span>
+        </div>
+        <nav>
+          {nav.map(([key, label]) => (
+            <button key={key} className={view === key ? 'active' : ''} onClick={() => setView(key)}>{label}</button>
+          ))}
+        </nav>
+      </header>
+      <main>
+        {view === 'home' && <HomeArena onMore={() => setView('announcements')} onResults={() => setView('results')} onCompetitions={() => setView('competitions')} />}
+        {view === 'seasons' && <Listing title="المواسم الرياضية" endpoint="seasons" icon={<Activity />} />}
+        {view === 'competitions' && <CompetitionsListing />}
+        {view === 'teams' && <TeamsBoard onPlayer={(id) => { setPlayerId(id); setView('player'); }} />}
+        {view === 'player' && playerId && <PlayerCard id={playerId} onBack={() => setView('teams')} />}
+        {view === 'results' && <Scoreboard />}
+        {view === 'honors' && <HonorsBoard />}
+        {view === 'announcements' && <Listing title="الإعلانات الرسمية" endpoint="announcements" icon={<FileCheck2 />} />}
+        {view === 'help' && <Help />}
+        {view === 'register' && <InstitutionRegister />}
+      </main>
+      <footer>
+        <div className="site-foot">
+          <div>
+            <b>الجمهورية الجزائرية الديمقراطية الشعبية</b>
+            <span className="motto">بالشعب وللشعب — ومن المدرسة إلى الملعب الوطني</span>
+            <small>© {new Date().getFullYear()} NSSMS · National School Sports Management System</small>
+          </div>
+          <div>
+            <b>مرجع</b>
+            <small>حوكمة · أثر غير قابل للحذف · تحقق رخصة للعاملين</small>
+          </div>
+          <div>
+            <b>Staff</b>
+            <a href="/admin.html">فضاء العاملين / Administration</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function CompetitionsListing() {
+  const [kind, setKind] = useState<'all' | 'INDIVIDUAL' | 'TEAM'>('all');
+  const [rows, setRows] = useState<any[] | null>(null);
+  useEffect(() => {
+    const query = kind === 'all' ? '' : `?sportKind=${kind}`;
+    fetch(`${API}/api/v1/public/competitions${query}`).then((r) => (r.ok ? r.json() : { data: [] })).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
+  }, [kind]);
+  const labels: Record<string, string> = { INDIVIDUAL: 'فردية', TEAM: 'جماعية', REGISTRATION: 'تسجيل', ACTIVE: 'جارية', RESULTS: 'نتائج', CLOSED: 'مغلقة' };
+  return (
+    <section className="listing">
+      <div className="eyebrow"><Trophy /> الرزنامة المعتمدة</div>
+      <h1>المنافسات الفردية والجماعية</h1>
+      <p className="lede">جميع المنافسات أدناه معتمدة ومنشورة للموسم الجاري، بأكثر من سبع بطولات فردية وجماعية.</p>
+      <div className="tabs">
+        <button className={kind === 'all' ? 'selected' : ''} onClick={() => setKind('all')}>الكل</button>
+        <button className={kind === 'INDIVIDUAL' ? 'selected' : ''} onClick={() => setKind('INDIVIDUAL')}>فردية</button>
+        <button className={kind === 'TEAM' ? 'selected' : ''} onClick={() => setKind('TEAM')}>جماعية</button>
+      </div>
+      {!rows && <div className="empty">جارٍ التحميل…</div>}
+      {rows && (
+        <div className="cards">
+          {rows.map((row) => (
+            <article className="item-card" key={row.id}>
+              {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box"><Trophy /></div>}
+              <div>
+                <h3>{row.name}</h3>
+                <p>{row.summary}{row.rules_text ? ` — ${row.rules_text}` : ''}</p>
+              </div>
+              <span className="badge">{labels[row.sport_kind] ?? ''} · {row.age_category ?? ''} · {row.gender_category === 'MALE' ? 'ذكور' : row.gender_category === 'FEMALE' ? 'إناث' : row.gender_category === 'MIXED' ? 'مختلط' : ''} · {labels[row.status] ?? row.status}</span>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Listing({ title, endpoint, icon }: { title: string; endpoint: string; icon: React.ReactNode }) {
+  const [rows, setRows] = useState<any[] | null>(null);
+  useEffect(() => {
+    setRows(null);
+    fetch(`${API}/api/v1/public/${endpoint}`).then((r) => (r.ok ? r.json() : { data: [] })).then((d) => setRows(d.data ?? [])).catch(() => setRows([]));
+  }, [endpoint]);
+  return (
+    <section className="listing">
+      <div className="eyebrow">{icon} السجل العام المعتمد</div>
+      <h1>{title}</h1>
+      <p className="lede">تُعرض هنا المعلومات المنشورة بعد استيفاء دورة الاعتماد الإدارية.</p>
+      {!rows && <div className="empty">جارٍ التحميل…</div>}
+      {rows && rows.length === 0 && <div className="empty-state">لا توجد بيانات منشورة في هذا السجل حالياً.</div>}
+      {rows && rows.length > 0 && (
+        <div className="cards">
+          {rows.map((row, i) => (
+            <article className="item-card" key={row.id ?? i}>
+              {row.image_url ? <img className="thumb" src={row.image_url} alt="" /> : <div className="icon-box">{icon}</div>}
+              <div>
+                <h3>{row.title ?? row.name ?? row.competition_name ?? 'نتيجة منشورة'}</h3>
+                <p>{row.body ?? row.summary ?? row.season_name ?? 'معلومات معتمدة من الإدارة المختصة'}</p>
+              </div>
+              <span className="badge">{row.status ?? 'منشور'}</span>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Help() {
+  return (
+    <section className="listing">
+      <div className="eyebrow">الدعم</div>
+      <h1>دليل الاستخدام</h1>
+      <div className="help-grid">
+        <div className="panel"><h3>تحقق الرخصة · Staff only</h3><p>التحقق من الرخصة للعاملين المسجّلين فقط عبر فضاء العاملين. المشاهدون لا يرون الاسم أو بيانات الرخصة.</p></div>
+        <div className="panel"><h3>انخراط المؤسسة · Enrolment</h3><p>الولاية ثم الدائرة ثم البلدية، واسم حر للمؤسسة. الطلب معلّق حتى تعتمد الرابطة الولائية.</p></div>
+        <div className="panel"><h3>النطاق الإداري · Scope</h3><p>الوطني يرى الكل، الرابطة ولايتها، الدائرة دائرتها، والمؤسسة سجلها فقط — عدل جغرافي لا امتياز شخصي.</p></div>
+        <div className="panel"><h3>حفظ التاريخ · Memory</h3><p>الأثر لا يُمحى. الإغلاق والأرشفة يحفظان السجل كذاكرة إدارية للموسم والوطن.</p></div>
+      </div>
+    </section>
+  );
+}
+
+function InstitutionRegister() {
+  const [wilayas, setWilayas] = useState<any[]>([]);
+  const [dairas, setDairas] = useState<any[]>([]);
+  const [communes, setCommunes] = useState<any[]>([]);
+  const [form, setForm] = useState({ username: '', password: '', displayName: '', institutionName: '', wilayaId: '', dairaId: '', communeId: '' });
+  const [message, setMessage] = useState('');
+  const [codes, setCodes] = useState<{ coach?: string; student?: string } | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch(`${API}/api/v1/public/geography/wilayas`).then((r) => r.json()).then((d) => setWilayas(d.data ?? [])).catch(() => setWilayas([]));
+  }, []);
+  useEffect(() => {
+    if (!form.wilayaId) { setDairas([]); setCommunes([]); return; }
+    fetch(`${API}/api/v1/public/geography/wilayas/${form.wilayaId}/dairas`).then((r) => r.json()).then((d) => setDairas(d.data ?? [])).catch(() => setDairas([]));
+  }, [form.wilayaId]);
+  useEffect(() => {
+    if (!form.dairaId) { setCommunes([]); return; }
+    fetch(`${API}/api/v1/public/geography/dairas/${form.dairaId}/communes`).then((r) => r.json()).then((d) => setCommunes(d.data ?? [])).catch(() => setCommunes([]));
+  }, [form.dairaId]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    setCodes(null);
+    const r = await fetch(`${API}/api/v1/auth/institution-register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        username: form.username,
+        password: form.password,
+        displayName: form.displayName,
+        institutionName: form.institutionName,
+        institutionCode: `W${form.wilayaId}-C${form.communeId}-${Date.now().toString().slice(-6)}`,
+        wilayaId: Number(form.wilayaId),
+        dairaId: Number(form.dairaId)
+      })
+    });
+    if (!r.ok) { setError('تعذر تسجيل المؤسسة. تحقق من الولاية والدائرة والبلدية والرابطة الولائية.'); return; }
+    const data = await r.json();
+    setMessage('تم إرسال الطلب. احتفظ برمزي التحقق أدناه حتى تعتمد الرابطة الاسم ضمن قائمة المؤسسات.');
+    setCodes(data.enrollmentCodes ?? null);
+  }
+
+  return (
+    <section className="login-page">
+      <div className="login-card">
+        <div className="eyebrow"><Users size={18} /> دليل الولايات والدوائر والبلديات</div>
+        <h1>انخراط مؤسسة</h1>
+        <p>اختر الولاية ثم الدائرة ثم البلدية، ثم سمِّ مؤسستك كما تريد. الاسم يُعتمد لاحقاً ضمن اختيارات المؤسسات.</p>
+        <form onSubmit={submit}>
+          <label>الولاية
+            <select value={form.wilayaId} onChange={(e) => setForm({ ...form, wilayaId: e.target.value, dairaId: '', communeId: '' })} required>
+              <option value="">اختر الولاية</option>
+              {wilayas.map((w) => <option key={w.id} value={w.id}>{w.ar_name || w.name}</option>)}
+            </select>
+          </label>
+          <label>الدائرة
+            <select value={form.dairaId} onChange={(e) => setForm({ ...form, dairaId: e.target.value, communeId: '' })} required disabled={!form.wilayaId}>
+              <option value="">{form.wilayaId ? 'اختر الدائرة' : 'اختر الولاية أولاً'}</option>
+              {dairas.map((d) => <option key={d.id} value={d.id}>{d.ar_name || d.name}</option>)}
+            </select>
+          </label>
+          <label>البلدية
+            <select value={form.communeId} onChange={(e) => setForm({ ...form, communeId: e.target.value })} required disabled={!form.dairaId}>
+              <option value="">{form.dairaId ? 'اختر البلدية' : 'اختر الدائرة أولاً'}</option>
+              {communes.map((c) => <option key={c.id} value={c.id}>{c.ar_name || c.name}</option>)}
+            </select>
+          </label>
+          <label>اسم المؤسسة كما تريد اعتماده<input value={form.institutionName} onChange={(e) => setForm({ ...form, institutionName: e.target.value })} required placeholder="تسمية حرة للمؤسسة المنخرطة" /></label>
+          <label>اسم المستخدم<input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></label>
+          <label>كلمة المرور<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={12} /></label>
+          <label>الاسم المعروض للمسؤول<input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required /></label>
+          {error && <div className="alert error">{error}</div>}
+          {message && <div className="result-card"><div><strong>{message}</strong></div></div>}
+          {codes && (
+            <div className="result-card">
+              <div>
+                <strong>رمز تحقق المدرب</strong><span>{codes.coach}</span>
+                <strong>رمز تحقق التلميذ</strong><span>{codes.student}</span>
+              </div>
+            </div>
+          )}
+          <button className="primary">إرسال طلب الانخراط</button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

@@ -2,7 +2,7 @@
 
 ## National School Sports Management System
 
-**Status:** WORK IN PROGRESS (WIP)
+**Status:** Feature-complete local foundation (WIP for production approvals)
 
 NSSMS is a proposed national governmental platform for managing school sports in Algeria.
 
@@ -59,10 +59,18 @@ $env:VITE_API_URL = "http://localhost:3000"
 npm run dev
 ```
 
-Demo accounts:
+Demo accounts (local simulation only):
 
-- `demo.admin` / `NssmsDemoAdmin-2026!`
-- `demo.national` / `NssmsDemoNational-2026!`
+- `demo.admin` / `NssmsDemoAdmin-2026!` — إداري نظام
+- `demo.national` / `NssmsDemoNational-2026!` — إداري وطني
+- `demo.association.admin` / `NssmsAssocAdmin-2026!` — رابطة سطيف
+- `demo.association.rep` / `NssmsAssocRep-2026!` — ممثل الرابطة
+- `demo.daira.officer` / `NssmsDairaOff-2026!` — دائرة سطيف
+- `demo.institution` / `NssmsInstitution-2026!` — ثانوية الشهيد
+
+Simulation seed: `cd backend && npm run seed:simulation` after migrations. Embedded PostgreSQL: `npm run pg:embedded`.
+
+National geography and school directory come from [GeoAlgeria](https://github.com/yasserstudio/geoalgeria) (`geoalgeria` + `@geoalgeria/ecoles@2.1.0`, MIT). Import with `npm run import:geoalgeria`.
 
 Validation commands:
 
